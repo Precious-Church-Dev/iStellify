@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: istellify
+    runtime: node
+    region: singapore
+    plan: 0.5c-512mb
+    buildCommand: npm ci && npm run build
+    preDeployCommand: npm run db:migrate
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: '22'
+      - key: DATABASE_URL
+        fromDatabase:
+          name: istellify-db
+          property: connectionString
+      - key: SETUP_SECRET
+        generateValue: true
+      - key: APP_URL
+        sync: false
+databases:
+  - name: istellify-db
+    databaseName: istellify
+    region: singapore
+    plan: 0.1c-256mb
+    diskSizeGB: 1
+    ipAllowList: []

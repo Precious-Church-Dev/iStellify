@@ -88,4 +88,3 @@ Next.js App Router with React and TypeScript, PostgreSQL through a bounded `pg` 
 
 Never commit `.env` files, databases, roster exports, source spreadsheets, credentials or private attachments. Keep this repository code-only even if GitHub visibility is public.
 
-
