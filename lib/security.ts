@@ -29,7 +29,7 @@ export class HttpError extends Error {
   }
 }
 export function sameOrigin(req: Request) {
-  const expected = process.env.APP_URL;
+  const expected = process.env.APP_URL || process.env.RENDER_EXTERNAL_URL;
   if (!expected) throw new HttpError(503, 'APP_URL is not configured.');
   let target;
   try {

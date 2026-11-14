@@ -17,8 +17,6 @@ services:
           property: connectionString
       - key: SETUP_SECRET
         generateValue: true
-      - key: APP_URL
-        sync: false
 databases:
   - name: istellify-db
     databaseName: istellify
