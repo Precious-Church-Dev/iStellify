@@ -315,23 +315,21 @@ assert.equal(r.status, 200);
 family = await state(guardian, '?subject=' + child);
 assert.equal(family.logs.find((l) => l.habit === 'iRead').entered_by, 'demo-PCM0006');
 check('Assisted logging records guardian actor');
-assert.equal(
-  (
-    await call(
-      '/api/app',
-      {
-        action: 'log',
-        subject: child,
-        habit: 'iTithes',
-        date: today,
-        data: { tithes: 20, method: 'Cash' },
-      },
-      guardian,
-    )
-  ).status,
-  400,
+let kidTithe = (await state(guardian, '?subject=' + child)).logs.find((l) => l.habit === 'iTithes');
+r = await call(
+  '/api/app',
+  {
+    action: 'log',
+    subject: child,
+    habit: 'iTithes',
+    date: today,
+    version: kidTithe?.version,
+    data: { tithes: '20', method: 'Cash' },
+  },
+  guardian,
 );
-check('Children’s financial entry disabled in pilot');
+assert.equal(r.status, 200, JSON.stringify(r.body));
+check('Kids iTithes card records guardian-assisted giving privately');
 r = await call(
   '/api/app',
   { action: 'commitment', name: 'Test habit ' + Date.now(), frequency: 'daily', duration: 10 },
@@ -347,7 +345,7 @@ assert.equal(
 );
 check('Member cannot administer accounts');
 const old = new Date(today + 'T12:00:00Z');
-old.setUTCDate(old.getUTCDate() - 14);
+old.setUTCDate(old.getUTCDate() - 30 - Math.floor(Math.random() * 500));
 const oldDay = old.toISOString().slice(0, 10);
 let oldState = await state(alex, '?date=' + oldDay),
   oldLog = oldState.logs.find((l) => l.habit === 'iRead');

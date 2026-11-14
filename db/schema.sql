@@ -25,3 +25,12 @@ CREATE INDEX IF NOT EXISTS notifications_recipient ON notifications(recipient_id
 CREATE TABLE IF NOT EXISTS attachments (id TEXT PRIMARY KEY,owner_id TEXT NOT NULL REFERENCES members(id),log_id TEXT REFERENCES logs(id),name TEXT NOT NULL,mime TEXT NOT NULL,body BYTEA NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT now());
 ALTER TABLE logs DROP CONSTRAINT IF EXISTS logs_status_check;
 ALTER TABLE logs ADD CONSTRAINT logs_status_check CHECK(status IN ('draft','pending','confirmed','flagged'));
+ALTER TABLE members ADD COLUMN IF NOT EXISTS spiritual_state TEXT NOT NULL DEFAULT 'SBG';
+CREATE TABLE IF NOT EXISTS personal_items (
+ id TEXT PRIMARY KEY,member_id TEXT NOT NULL REFERENCES members(id),kind TEXT NOT NULL CHECK(kind IN ('goal','assessment','salvation','testimony')),title TEXT NOT NULL,data JSONB NOT NULL DEFAULT '{}',visibility TEXT NOT NULL DEFAULT 'private',group_ids TEXT[] NOT NULL DEFAULT '{}',created_at TIMESTAMPTZ NOT NULL DEFAULT now(),updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS ministry_items (
+ id TEXT PRIMARY KEY,module TEXT NOT NULL CHECK(module IN ('care','share','church')),group_id TEXT REFERENCES groups(id),kind TEXT NOT NULL,title TEXT NOT NULL,body TEXT NOT NULL DEFAULT '',data JSONB NOT NULL DEFAULT '{}',visibility TEXT NOT NULL DEFAULT 'members' CHECK(visibility IN ('members','leaders','private')),owner_id TEXT NOT NULL REFERENCES members(id),state TEXT NOT NULL DEFAULT 'todo' CHECK(state IN ('todo','doing','done')),created_at TIMESTAMPTZ NOT NULL DEFAULT now(),updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS ministry_scope ON ministry_items(module,group_id);
+CREATE INDEX IF NOT EXISTS personal_owner ON personal_items(member_id,kind);

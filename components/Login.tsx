@@ -22,8 +22,10 @@ export default function Login({ needsSetup }: { needsSetup: boolean }) {
       });
       const b = await r.json();
       if (!r.ok) throw new Error(b.error);
-      if (mode === 'login') location.reload();
-      else {
+      if (mode === 'login') {
+        sessionStorage.setItem('istelli-greeting-pending', 'yes');
+        location.reload();
+      } else {
         setMode('login');
         setNotice(b.message);
       }

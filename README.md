@@ -1,6 +1,16 @@
 # iStellify
 
-Precious Church's private member growth and ministry application. This first pilot implements the agreed core: authentication, roster import, spiritual and personal habit logs, scoped groups, independent verification, tithe declarations/reconciliation, guardian-assisted Kids logging and administration.
+Precious Church's private member growth and ministry application. The pilot includes authentication, roster import, habit logs, scoped groups, independent verification, tithe declarations/reconciliation, guardian-assisted Kids logging and administration, with the module structure from the supplied wireframes.
+
+## Member experience
+
+The main sidebar contains iStellify, StelliKids, StelliCare, StelliShare, StelliChurch, StelliTithes, StelliSet and StelliAd. Experience tags determine the adult or Kids landing page. Restricted modules remain visibly locked. Adult sub-modules are StelliGreet, StelliLight, StelliLife, StelliStat, StelliLink, StelliSave, StelliBEST, StelliGoal and StelliRate. Kids have separate SkidiGreet/Light/Life/Stat/Link/Goal/Rate views; linked guardians can assist only their assigned children.
+
+StelliSave records the date and account of salvation, understanding, confirmation and supporting references. StelliB.E.S.T. records Before, Event that Led, Salvation Day and Today. Both are private by default; a member can deliberately publish a B.E.S.T. testimony to their Care Group or church and withdraw it later. Salvation entries do not automatically change a spiritual state. Administrators assign the source-defined SBG/sP2S/P2S/AOS state explicitly.
+
+Stelli uses the original supplied PNG, pops out after sign-in, smiles, changes the monitor to WELCOME, greets the member and returns to the dock. The greeting can be replayed or dismissed and honors reduced-motion preferences. The original logo and character artwork are unchanged; monitor expressions are a UI overlay.
+
+Care and Share provide scoped session records, leader-published icebreakers/strategies, assignments, a name picker, prayers, voluntarily shared testimonies and leader task boards. Church provides member content, slides links, dates, prayers, private counsel/help requests, leadership goals/tasks and aggregate activity counts. Personal goals and private dated health/growth checkpoints persist in the database. Statistics support date ranges and an owner-only CSV report. These are pilot workflows; they do not imply every advanced feature in the full PRD is complete.
 
 ## Deploy to Render
 
@@ -48,7 +58,7 @@ npm test
 npm run build
 ```
 
-With the seeded local dev server running and `DEMO_PASSWORD` set, `node scripts/check-pilot.mjs` exercises authentication, scoped reads, private notes, review, revisions, financial reconciliation, guardian logging, import, activation and attachment authorization. This script mutates **synthetic localhost data only**. It refuses non-localhost URLs. GitHub Actions runs type checks, unit checks and the production build.
+With the seeded local server running and `DEMO_PASSWORD` set, `node scripts/check-pilot.mjs` exercises authentication, scoped reads, private notes, review, revisions, financial reconciliation, guardian logging, import, activation and attachment authorization. `node scripts/check-modules.mjs` checks personal record persistence, testimony sharing/withdrawal, child access, ministry publishing, assignments and leader-only task boards. Both scripts mutate **synthetic localhost data only** and refuse non-localhost URLs. GitHub Actions runs type checks, unit checks and the production build.
 
 ## Implemented security and privacy behavior
 
@@ -68,9 +78,9 @@ This is a working **pilot**, not the full PRD implementation or a production com
 - Currency is PHP and Sunday begins the week in Asia/Manila. Daily schedules lock to a calendar week, weekly to a month, monthly to a quarter. Closed spiritual periods require an audited, time-limited administrator exception. Owner confirmation is still needed for excusal, grace and theological progression policies.
 - iRead, iPray, iPraise, iNote, iCare, iSpeak, iTithes, weekly iRate and monthly iShare are available. Daily prayer supports private partial drafts. Custom habits support daily/weekly/monthly frequency; arbitrary weekday schedules and the premade library are future work.
 - Digital notes are enabled for the pilot rather than implementing the final selected-member entitlement and full BUP/BSF structured editor. Generic personal custom habits are self-reported; spiritual activities have independent review queues.
-- Children have iRead/iPray/iPraise/iNote and custom habits. Child financial entries and outreach are disabled until policy is settled. The experience tag is not age verification or a legal consent determination.
+- Children have iRead/iPray/iPraise/iTithes/iNote and custom habits, matching the Kids wireframe. Guardian-assisted giving records retain the same private financial authorization. Kids links show family scope only. The experience tag is not age verification or a legal consent determination.
 - Tithe reasons provisionally include both source lists. There are declarations and manual receipt reconciliation; no payment gateway or automatic bank matching.
-- Stelli uses the original supplied PNG artwork with contextual encouragement. Animated expressions, automatic scheduled reminders, external email/push, AI chat, promotion/state management, health/goal assessments, StelliCoach, StelliSave, StelliBEST, session wheels, ministry Kanban and full StelliChurch analytics remain on the PRD backlog.
+- Automatic scheduled reminders, external email/push, AI chat, automatic theological progression, StelliCoach, advanced historical analytics and full PRD reporting remain on the backlog. Ministry resources use text and links; an embedded slide presentation editor is not included. Health values are private self-reported records, with an adult numeric BMI calculation and no clinical interpretation.
 - In-app peer nudges have one-per-sender/recipient/day and three-per-recipient/day limits. Notification preferences, quiet-hour delivery scheduling and automatic reminders are later work.
 - Attachments are privately stored in PostgreSQL for this small pilot (PNG/JPEG/PDF, 2 MB each, limited daily uploads), so they survive deploys and are covered by database backups. This deliberately avoids Render's ephemeral filesystem. Downloads use `application/octet-stream` and authorization. A malware scanner and external object/Drive storage adapter are **not** implemented; restrict pilot uploads to trusted testers until these are reviewed. Limit total media growth on the small database.
 - MFA, account recovery outside administrator-issued codes, Google login, privacy consent text/versioning, formal retention/erasure procedures, public rate-limit abuse review and a full accessibility audit remain launch-hardening work. No real financial/medical/child-data launch should be inferred from a successful build.

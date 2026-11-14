@@ -31,6 +31,7 @@ await transaction(async (db) => {
     ['demo-finance', 'Sample Financial Group', 'finance'],
     ['demo-family', 'Sample Family', 'family'],
     ['demo-kids', 'Sample Kids Group', 'care'],
+    ['demo-share', 'Sample Sharing Group', 'share'],
   ])
     await db.query(
       'INSERT INTO groups(id,code,name,kind) VALUES($1,$1,$2,$3) ON CONFLICT DO NOTHING',
@@ -46,6 +47,8 @@ await transaction(async (db) => {
     ['PCM0006', 'demo-family', 'leader'],
     ['PCM0007', 'demo-family', 'member'],
     ['PCM0007', 'demo-kids', 'member'],
+    ['PCM0003', 'demo-share', 'member'],
+    ['PCM0004', 'demo-share', 'captain'],
   ])
     await db.query(
       'INSERT INTO memberships(member_id,group_id,roles) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',

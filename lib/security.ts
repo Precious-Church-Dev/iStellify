@@ -44,7 +44,7 @@ export async function currentUser(): Promise<Person | null> {
   const key = (await cookies()).get('istelli_session')?.value;
   if (!key) return null;
   const result = await query(
-    `SELECT m.id,m.pcm,m.name,m.nickname,m.tag,m.roles,m.active FROM sessions s JOIN members m ON m.id=s.member_id WHERE s.token_hash=$1 AND s.last_active>now()-interval '5 minutes' AND s.created_at>now()-interval '12 hours' AND m.active=true`,
+    `SELECT m.id,m.pcm,m.name,m.nickname,m.tag,m.roles,m.active,m.spiritual_state FROM sessions s JOIN members m ON m.id=s.member_id WHERE s.token_hash=$1 AND s.last_active>now()-interval '5 minutes' AND s.created_at>now()-interval '12 hours' AND m.active=true`,
     [digest(key)],
   );
   return (result.rows[0] as Person) || null;

@@ -34,6 +34,17 @@ import { DAILY, WEEKLY, MONTHLY, periodFor, weekStart } from '@/lib/domain';
 import HabitForm from './HabitForm';
 import Mascot from './Mascot';
 import Brand from './Brand';
+import MemberOverview from './MemberOverview';
+import PersonalSections from './PersonalSections';
+import MinistryModule from './MinistryModule';
+import StelliCompanion from './StelliCompanion';
+import {
+  MODULES,
+  landingModule,
+  memberSections,
+  moduleAllowed,
+  type ModuleId,
+} from '@/lib/navigation';
 const names: Record<string, string> = {
   iRead: 'Read & reflect',
   iPray: 'Make time for prayer',
@@ -124,6 +135,8 @@ function SimpleForm({
 export default function Workspace() {
   const [state, setState] = useState<any>(null),
     [view, setView] = useState('home'),
+    [activeModule, setActiveModule] = useState<ModuleId | null>(null),
+    [celebration, setCelebration] = useState(0),
     [date, setDate] = useState(''),
     [subject, setSubject] = useState(''),
     [modal, setModal] = useState<any>(null),
@@ -228,6 +241,7 @@ export default function Workspace() {
     if (!r.ok) throw new Error(b.error);
     if (b.message) setToast(b.message);
     await refresh();
+    if (data.action === 'log' && !data.draft) setCelebration((n) => n + 1);
     return b;
   }
   function go(v: string) {
@@ -258,7 +272,9 @@ export default function Workspace() {
     u = s.user,
     kids = s.subject.tag === 'StelliKids',
     activeDate = date || s.today;
-  const allHabits = kids ? ['iRead', 'iPray', 'iPraise', 'iNote'] : DAILY.concat(WEEKLY, MONTHLY);
+  const allHabits = kids
+    ? ['iRead', 'iPray', 'iPraise', 'iNote', 'iTithes']
+    : DAILY.concat(WEEKLY, MONTHLY);
   const entry = (habit: string, frequency?: string) =>
     s.logs.find(
       (l: any) => l.habit === habit && l.period === periodFor(habit, activeDate, frequency),
@@ -267,18 +283,76 @@ export default function Workspace() {
     weekDone = allHabits.filter(
       (h) => WEEKLY.includes(h) && entry(h) && entry(h).status !== 'draft',
     ).length;
-  const pending = s.review.filter((l: any) => l.status === 'pending');
-  const navigation = [
-    ['home', 'My overview', LayoutDashboard],
-    ['light', kids ? 'SkidiLight' : 'StelliLight', Sun],
-    ['life', kids ? 'SkidiLife' : 'StelliLife', Leaf],
-    ['groups', 'StelliLink', Users],
-    ['review', 'StelliCheck', ShieldCheck],
-    ...(!kids ? [['tithes', 'iTithes', Wallet]] : []),
-    ...(s.children.length ? [['kids', 'My children', Heart]] : []),
-    ...(s.admin ? [['admin', 'StelliAd', LockKeyhole]] : []),
-    ['settings', 'StelliSet', Settings],
-  ];
+  const moduleId = activeModule || landingModule(u.tag);
+  const moduleInfo = MODULES.find((m) => m.id === moduleId)!;
+  const coreModule = moduleId === 'individual' || moduleId === 'kids';
+  const sections = memberSections(kids);
+  const pending = s.review.filter(
+    (l: any) =>
+      l.status === 'pending' &&
+      (moduleId === 'care'
+        ? !['iShare', 'iTithes'].includes(l.habit)
+        : moduleId === 'share'
+          ? l.habit === 'iShare'
+          : moduleId === 'finance'
+            ? l.habit === 'iTithes'
+            : true),
+  );
+  const navigation = MODULES.map((m) => [
+    m.id,
+    m.label,
+    (
+      {
+        individual: Star,
+        kids: Heart,
+        care: Users,
+        share: Sparkles,
+        church: BookOpen,
+        finance: Wallet,
+        settings: Settings,
+        admin: LockKeyhole,
+      } as any
+    )[m.id],
+  ]);
+  function openModule(id: ModuleId) {
+    if (!moduleAllowed(id, u, s.children.length)) return;
+    setActiveModule(id);
+    setMenu(false);
+    setReviewing(null);
+    setModal(null);
+    if (id === 'kids' && u.tag !== 'StelliKids') {
+      setSubject('');
+      setView('kids');
+      return;
+    }
+    if (subject) {
+      setSubject('');
+      setState(null);
+    }
+    setView(
+      id === 'individual' || id === 'kids'
+        ? 'home'
+        : id === 'care' || id === 'share' || id === 'church'
+          ? 'ministry'
+          : id === 'finance'
+            ? 'tithes'
+            : id === 'settings'
+              ? 'settings'
+              : 'admin',
+    );
+  }
+  const sectionName =
+    view === 'notifications'
+      ? 'Notifications'
+      : view === 'review'
+        ? moduleId === 'care'
+          ? 'iCareCheck'
+          : moduleId === 'share'
+            ? 'iShareCheck'
+            : 'iTithesCheck'
+        : coreModule
+          ? sections.find((t) => t.id === view)?.label || 'StelliKids'
+          : moduleInfo.label;
   const openHabit = (habit: string, title?: string, frequency?: string) =>
     setModal({ habit, title, existing: entry(habit, frequency) });
   const Card = ({
@@ -294,14 +368,14 @@ export default function Workspace() {
       Icon = icons[habit] || Leaf;
     return (
       <button
-        className={'habit-card ' + (log ? 'completed' : '')}
+        className={'habit-card ' + (log && log.status !== 'draft' ? 'completed' : '')}
         onClick={() => openHabit(habit, title, frequency)}
       >
         <div className="habit-top">
           <span className="habit-icon">
             <Icon size={21} />
           </span>
-          {log ? (
+          {log && log.status !== 'draft' ? (
             <span className="round-check">
               <Check size={15} />
             </span>
@@ -328,13 +402,20 @@ export default function Workspace() {
       <aside className={'sidebar ' + (menu ? 'open' : '')}>
         <Brand />
         <div className="church-label">PRECIOUS CHURCH</div>
-        <div className="nav-caption">YOUR JOURNEY</div>
+        <div className="nav-caption">CHURCH MODULES</div>
         <nav>
           {navigation.map(([key, label, Icon]: any) => (
-            <button key={key} className={view === key ? 'active' : ''} onClick={() => go(key)}>
+            <button
+              key={key}
+              className={moduleId === key ? 'active' : ''}
+              disabled={!moduleAllowed(key as ModuleId, u, s.children.length)}
+              onClick={() => openModule(key as ModuleId)}
+            >
               <Icon size={19} />
               <span>{label}</span>
-              {key === 'review' && pending.length > 0 && <b>{pending.length}</b>}
+              {!moduleAllowed(key as ModuleId, u, s.children.length) && (
+                <LockKeyhole size={11} className="module-lock" />
+              )}
             </button>
           ))}
         </nav>
@@ -370,9 +451,9 @@ export default function Workspace() {
             >
               <Menu />
             </button>
-            <span>Your journey</span>
+            <span>{moduleInfo.label}</span>
             <ChevronRight size={14} />
-            <strong>{navigation.find((n) => n[0] === view)?.[1] as string}</strong>
+            <strong>{sectionName}</strong>
           </div>
           <div className="topbar-right">
             <span className="private-label">
@@ -405,29 +486,7 @@ export default function Workspace() {
               <span className="eyebrow">
                 {kids ? 'LITTLE STEPS, BRIGHT STARS' : 'A LITTLE GROWTH, EVERY DAY'}
               </span>
-              <h1>
-                {view === 'home'
-                  ? `Hello, ${s.subject.nickname || s.subject.name.split(' ')[0]}`
-                  : view === 'light'
-                    ? kids
-                      ? 'SkidiLight'
-                      : 'StelliLight'
-                    : view === 'life'
-                      ? 'Build habits that matter'
-                      : view === 'groups'
-                        ? 'Better together'
-                        : view === 'review'
-                          ? 'Encourage honest growth'
-                          : view === 'admin'
-                            ? 'Church administration'
-                            : view === 'tithes'
-                              ? 'Give with intention'
-                              : view === 'kids'
-                                ? 'Growing together'
-                                : view === 'settings'
-                                  ? 'Your space, your preferences'
-                                  : 'A little encouragement'}
-              </h1>
+              <h1>{coreModule && view === 'home' ? moduleInfo.label : sectionName}</h1>
               <p className="muted">
                 {view === 'home'
                   ? 'Make space for faith, purpose, and the people around you.'
@@ -455,120 +514,41 @@ export default function Workspace() {
             <div className="assisted-banner">
               <Heart size={18} />
               Assisting {s.subject.name}. Your name is recorded as the person entering each
-              activity.<button onClick={() => setSubject('')}>Return to my account</button>
+              activity.
+              <button onClick={() => openModule(landingModule(u.tag))}>Return to my account</button>
             </div>
           )}
-          {view === 'home' && (
-            <>
-              <section className="welcome-banner">
-                <div>
-                  <span className="eyebrow light">KEEP SHOWING UP</span>
-                  <h2>
-                    Your next small step
-                    <br />
-                    can make a difference.
-                  </h2>
-                  <p>
-                    {dayDone === 2
-                      ? 'You have submitted both daily activities. Well done!'
-                      : 'Take a quiet moment to read, reflect, and reconnect today.'}
-                  </p>
-                  <button className="button gold" onClick={() => go('light')}>
-                    Continue my journey
-                    <ArrowRight size={16} />
-                  </button>
-                </div>
-                <div className="banner-mascot">
-                  <div className="star-orbit" />
-                  <Mascot />
-                  <span className="spark a">✦</span>
-                  <span className="spark b">✧</span>
-                  <span className="spark c">✦</span>
-                </div>
-              </section>
-              <div className="stats-row">
-                <div className="stat-card">
-                  <div className="stat-label">
-                    <Sun size={18} />
-                    Today’s daily habits
-                  </div>
-                  <strong>
-                    {dayDone}
-                    <small> / 2</small>
-                  </strong>
-                  <div className="progress-track">
-                    <span style={{ width: `${dayDone * 50}%` }} />
-                  </div>
-                  <p>Self-reported completion</p>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-label">
-                    <CalendarDays size={18} />
-                    Weekly activities
-                  </div>
-                  <strong>
-                    {weekDone}
-                    <small> / {kids ? 2 : 6}</small>
-                  </strong>
-                  <p>For the week of {weekStart(activeDate)}</p>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-label">
-                    <ShieldCheck size={18} />
-                    Verified entries
-                  </div>
-                  <strong>
-                    {s.logs.filter((l: any) => l.status === 'confirmed').length}
-                    <small> entries</small>
-                  </strong>
-                  <p>
-                    {s.logs.filter((l: any) => l.status === 'pending').length} awaiting verification
-                    in this view
-                  </p>
-                </div>
-              </div>
-              <div className="section-heading">
-                <div>
-                  <h2>Your daily light</h2>
-                  <p className="muted">Two moments to stay rooted.</p>
-                </div>
-                <button className="text-button" onClick={() => go('light')}>
-                  View all habits
-                  <ArrowRight size={15} />
+          {coreModule && view !== 'kids' && view !== 'notifications' && (
+            <nav className="module-tabs member-tabs" aria-label={moduleInfo.label + ' sub-modules'}>
+              {sections.map((t) => (
+                <button
+                  key={t.id}
+                  className={view === t.id ? 'active' : ''}
+                  onClick={() => go(t.id)}
+                >
+                  {t.label}
                 </button>
-              </div>
-              <div className="dashboard-columns">
-                <div className="habit-grid daily-grid">
-                  {DAILY.map((h) => (
-                    <Card key={h} habit={h} />
-                  ))}
-                </div>
-                <section className="today-note">
-                  <span className="note-star">✧</span>
-                  <span className="eyebrow">STELLI’S REMINDER</span>
-                  <p>
-                    Growth takes consistency.
-                    <br />
-                    Start with one small step today.
-                  </p>
-                  <div>
-                    <Mascot small />
-                    <span>You’ve got this.</span>
-                  </div>
-                </section>
-              </div>
-              <div className="section-heading">
-                <div>
-                  <h2>Your people, your encouragement</h2>
-                  <p className="muted">Connected through your church groups.</p>
-                </div>
-                <button className="text-button" onClick={() => go('groups')}>
-                  Open StelliLink
-                  <ArrowRight size={15} />
-                </button>
-              </div>
-              <GroupPanels peers={s.peers} onNudge={(id) => act({ action: 'nudge', id })} />
-            </>
+              ))}
+            </nav>
+          )}
+          {coreModule && view === 'home' && (
+            <MemberOverview state={s} onOpen={go} onHabit={openHabit} />
+          )}
+          {coreModule && ['stat', 'goals', 'rate', 'save', 'best'].includes(view) && (
+            <PersonalSections
+              view={view}
+              state={s}
+              date={activeDate}
+              onRefresh={refresh}
+              onWeeklyRate={() => openHabit('iRate')}
+            />
+          )}
+          {['care', 'share', 'church'].includes(moduleId) && view === 'ministry' && (
+            <MinistryModule
+              module={moduleId as 'care' | 'share' | 'church'}
+              state={s}
+              onReview={() => go('review')}
+            />
           )}
           {view === 'light' && (
             <>
@@ -808,17 +788,68 @@ export default function Workspace() {
                   )}
                 </div>
               </section>
-              {s.finance.length > 0 && <FinanceTable logs={s.finance} onReview={setReviewing} />}
+              {(s.finance.length > 0 ||
+                (s.roleScope || s.scope).some((g: any) => g.roles.includes('auditor')) ||
+                u.roles.includes('pastor')) && (
+                <section className="panel spaced leader-workspace">
+                  <span className="eyebrow">AUDITOR SECTION</span>
+                  <h2>StelliTithesDash</h2>
+                  <p className="muted">
+                    Declared and verified totals are shown separately for your authorized financial
+                    groups.
+                  </p>
+                  <button className="button primary" onClick={() => go('review')}>
+                    iTithesCheck
+                    <ShieldCheck size={16} />
+                  </button>
+                </section>
+              )}
+              {s.finance.length > 0 && (
+                <FinanceTable
+                  logs={[
+                    ...s.finance,
+                    ...s.logs
+                      .filter((l: any) => l.habit === 'iTithes' && l.status !== 'draft')
+                      .map((l: any) => ({ ...l, name: s.subject.name, pcm: s.subject.pcm })),
+                  ]}
+                  onReview={(l: any) =>
+                    l.member_id === u.id ? openHabit('iTithes') : setReviewing(l)
+                  }
+                />
+              )}
             </>
           )}
           {view === 'kids' && (
             <div className="habit-grid">
+              {!s.children.length && (
+                <section className="panel">
+                  <h2>StelliKids</h2>
+                  <p className="muted">
+                    Children tagged StelliKids land directly on their SkidiGreet dashboard after
+                    login. To help a child from your account, first record the guardian relationship
+                    in StelliAd.
+                  </p>
+                  {s.admin && (
+                    <button
+                      className="button primary"
+                      onClick={() => {
+                        openModule('admin');
+                        setAdminTab('guardians');
+                      }}
+                    >
+                      Manage guardian links
+                    </button>
+                  )}
+                </section>
+              )}
               {s.children.map((child: any) => (
                 <button
                   key={child.id}
                   className="panel child-card"
                   onClick={() => {
                     setSubject(child.id);
+                    setActiveModule('kids');
+                    setState(null);
                     go('home');
                   }}
                 >
@@ -1346,6 +1377,12 @@ export default function Workspace() {
           </button>
         </div>
       )}
+      <StelliCompanion
+        memberId={u.id}
+        name={s.subject.nickname || s.subject.name.split(' ')[0]}
+        kids={kids}
+        celebration={celebration}
+      />
       {modal?.habit && (
         <HabitForm
           {...modal}
@@ -1465,6 +1502,8 @@ export default function Workspace() {
                   action: 'memberAccess',
                   id: modal.access.id,
                   active: d.active === 'on',
+                  tag: d.tag,
+                  spiritualState: d.spiritualState,
                   roles: [
                     ...(d.admin === 'on' ? ['admin'] : []),
                     ...(d.pastor === 'on' ? ['pastor'] : []),
@@ -1473,6 +1512,22 @@ export default function Workspace() {
                 setModal(null);
               }}
             >
+              <label>
+                StelliTag
+                <select name="tag" defaultValue={modal.access.tag}>
+                  <option>iStellify</option>
+                  <option>StelliKids</option>
+                </select>
+              </label>
+              <label>
+                StelliState
+                <select name="spiritualState" defaultValue={modal.access.spiritual_state || 'SBG'}>
+                  <option>SBG</option>
+                  <option>sP2S</option>
+                  <option>P2S</option>
+                  <option>AOS</option>
+                </select>
+              </label>
               <label className="check-card">
                 <input name="active" type="checkbox" defaultChecked={modal.access.active} />
                 Account active

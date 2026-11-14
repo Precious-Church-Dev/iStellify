@@ -46,7 +46,7 @@ function outError(e: unknown) {
 async function subjectFor(u: any, id: string) {
   if (!id || id === u.id) return u;
   const child = await run(
-    'SELECT m.id,m.pcm,m.name,m.nickname,m.tag,m.roles FROM guardian_links gl JOIN members m ON m.id=gl.child_id WHERE gl.guardian_id=$1 AND gl.child_id=$2 AND m.active=true',
+    'SELECT m.id,m.pcm,m.name,m.nickname,m.tag,m.roles,m.spiritual_state FROM guardian_links gl JOIN members m ON m.id=gl.child_id WHERE gl.guardian_id=$1 AND gl.child_id=$2 AND m.active=true',
     [u.id, id],
   );
   if (!child.length) fail('This member is not linked to your account.', 403);
@@ -98,8 +98,8 @@ export async function GET(req: Request) {
       `SELECT DISTINCT m.id,m.name,m.nickname,m.pcm,g.id AS group_id,g.name AS group_name,g.kind,
  (SELECT count(*)::int FROM logs l WHERE l.member_id=m.id AND l.period=$2 AND l.status<>'draft' AND l.habit IN ('iRead','iPray')) AS daily_count
  FROM memberships mg JOIN memberships mine ON mine.group_id=mg.group_id JOIN members m ON m.id=mg.member_id JOIN groups g ON g.id=mg.group_id
- WHERE mine.member_id=$1 AND m.id<>$1 AND m.active=true AND m.tag<>'StelliKids' AND g.kind IN ('family','care','share') ORDER BY g.kind,m.name`,
-      [user.id, day],
+ WHERE mine.member_id=$1 AND m.id<>$1 AND m.active=true AND m.tag<>'StelliKids' AND g.kind IN ('family','care','share') AND ($3::boolean=false OR g.kind='family') ORDER BY g.kind,m.name`,
+      [subject.id, day, subject.tag === 'StelliKids'],
     );
     const notes = await run(
       'SELECT id,message,created_at,read_at FROM notifications WHERE recipient_id=$1 ORDER BY created_at DESC LIMIT 30',
@@ -119,7 +119,7 @@ export async function GET(req: Request) {
     const admin = isAdmin(user)
       ? {
           members: await run(
-            'SELECT id,pcm,name,nickname,tag,email,roles,active,password_hash IS NOT NULL AS activated FROM members ORDER BY pcm',
+            'SELECT id,pcm,name,nickname,tag,email,roles,active,spiritual_state,password_hash IS NOT NULL AS activated FROM members ORDER BY pcm',
           ),
           groups: await run('SELECT * FROM groups ORDER BY kind,code'),
           memberships: await run('SELECT * FROM memberships'),
@@ -145,6 +145,11 @@ export async function GET(req: Request) {
       question,
       admin,
       finance,
+      roleScope: scope,
+      personalItems: await run(
+        'SELECT id,kind,title,data,created_at,updated_at FROM personal_items WHERE member_id=$1 ORDER BY updated_at DESC LIMIT 200',
+        [subject.id],
+      ),
     });
   } catch (e) {
     return outError(e);
@@ -171,7 +176,7 @@ export async function POST(req: Request) {
           : 'weekly';
       if (!DAILY.concat(WEEKLY, MONTHLY).includes(habit)) {
         const c = await run(
-          'SELECT * FROM commitments WHERE id=$1 AND member_id=$2 AND archived=false',
+          'SELECT c.*,c.start_date::text AS start_date FROM commitments c WHERE c.id=$1 AND c.member_id=$2 AND c.archived=false',
           [habit, subject.id],
         );
         if (!c.length) fail('Habit is unavailable.');
@@ -194,7 +199,7 @@ export async function POST(req: Request) {
       }
       if (
         subject.tag === 'StelliKids' &&
-        !['iRead', 'iPray', 'iPraise', 'iNote'].includes(habit) &&
+        !['iRead', 'iPray', 'iPraise', 'iNote', 'iTithes'].includes(habit) &&
         DAILY.concat(WEEKLY, MONTHLY).includes(habit)
       )
         fail('This activity is not enabled for children in the pilot.');
@@ -381,10 +386,10 @@ export async function POST(req: Request) {
       });
     }
     if (b.action === 'archiveCommitment') {
-      const rows = await run('SELECT * FROM commitments WHERE id=$1 AND member_id=$2', [
-        b.id,
-        subject.id,
-      ]);
+      const rows = await run(
+        'SELECT id,lock_until::text AS lock_until FROM commitments WHERE id=$1 AND member_id=$2',
+        [b.id, subject.id],
+      );
       if (!rows.length) fail('Habit not found.', 404);
       if (String(rows[0].lock_until).slice(0, 10) >= today && !isAdmin(u))
         fail('This commitment is still locked. An administrator can authorize an exception.');
@@ -551,14 +556,23 @@ export async function POST(req: Request) {
         fail('Invalid role.');
       if (b.roles.includes('pastor') && target.pcm !== 'PCM0002')
         fail('The pilot reserves the Pastor role for PCM0002.');
+      if (b.tag && !['iStellify', 'StelliKids'].includes(b.tag))
+        fail('Choose iStellify or StelliKids.');
+      if (b.spiritualState && !['SBG', 'P2S', 'sP2S', 'AOS'].includes(b.spiritualState))
+        fail('Choose a valid spiritual state.');
       await transaction(async (db: any) => {
-        await db.query('UPDATE members SET active=$1,roles=$2 WHERE id=$3', [
-          Boolean(b.active),
-          b.roles,
-          b.id,
-        ]);
+        await db.query(
+          'UPDATE members SET active=$1,roles=$2,tag=COALESCE($4,tag),spiritual_state=COALESCE($5,spiritual_state) WHERE id=$3',
+          [Boolean(b.active), b.roles, b.id, b.tag || null, b.spiritualState || null],
+        );
         await db.query('DELETE FROM sessions WHERE member_id=$1', [b.id]);
-        await audit(u.id, 'member.access', b.id, { roles: b.roles, active: b.active }, db);
+        await audit(
+          u.id,
+          'member.access',
+          b.id,
+          { roles: b.roles, active: b.active, tag: b.tag, spiritualState: b.spiritualState },
+          db,
+        );
       });
       return Response.json({ ok: true, message: 'Access updated.' });
     }
