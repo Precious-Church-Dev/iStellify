@@ -34,3 +34,4 @@ CREATE TABLE IF NOT EXISTS ministry_items (
 );
 CREATE INDEX IF NOT EXISTS ministry_scope ON ministry_items(module,group_id);
 CREATE INDEX IF NOT EXISTS personal_owner ON personal_items(member_id,kind);
+ALTER TABLE members ADD COLUMN IF NOT EXISTS password_change_required BOOLEAN NOT NULL DEFAULT false;

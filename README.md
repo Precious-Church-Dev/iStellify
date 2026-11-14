@@ -62,6 +62,8 @@ With the seeded local server running and `DEMO_PASSWORD` set, `node scripts/chec
 
 ## Implemented security and privacy behavior
 
+In **StelliAd > Testing**, an administrator can set a shared familiarity-testing password (12–128 characters) for all non-admin members, including accounts pending activation. The planned familiarity period is November 15–18, 2026. There is no automatic 24-hour expiration or forced password change during familiarity testing. The administrator manually selects **End testing / require personal passwords** afterward; members then sign in with their current password and choose a different personal password before accessing records. Both bulk actions exclude PCM0001 and every Admin-role account, revoke affected member sessions, invalidate unused activation codes and record counts in the audit trail without passwords. Entries are preserved; existing passwords are replaced, not recoverable. No testing password is applied automatically by deployment.
+
 - PCM is an identifier; passwords use salted scrypt hashes. Sessions are opaque random tokens, stored hashed in PostgreSQL, with HttpOnly and SameSite cookies and Secure cookies in production.
 - Five-minute inactivity expiration is enforced on the server. Browser events send bounded activity heartbeats; background polling does not extend sessions. Sessions have a 12-hour absolute limit. Logout/reset/deactivation revoke them.
 - Cookie-authenticated writes require the configured same origin. Login and activation have database-backed attempt limits.

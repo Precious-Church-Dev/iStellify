@@ -7,6 +7,7 @@ import {
   requireUser,
   sameOrigin,
   token,
+  passwordHash,
 } from '@/lib/security';
 import {
   canFinance,
@@ -523,6 +524,69 @@ export async function POST(req: Request) {
       return Response.json({
         ok: true,
         message: `${pcm} created. Issue an activation code from Members.`,
+      });
+    }
+    if (b.action === 'bulkTestingPassword') {
+      if (!isAdmin(u)) fail('Administrator access required.', 403);
+      if (b.confirm !== 'yes') fail('Confirm that existing non-admin passwords will be replaced.');
+      const password = String(b.password || '');
+      if (password.length < 12 || password.length > 128)
+        fail('Use a temporary password between 12 and 128 characters.');
+      const hash = await passwordHash(password);
+      let count = 0;
+      await transaction(async (db: any) => {
+        const changed = await db.query(
+          "UPDATE members SET password_hash=$1,password_change_required=false WHERE pcm<>'PCM0001' AND NOT ('admin'=ANY(roles)) RETURNING id",
+          [hash],
+        );
+        const ids = changed.rows.map((m: any) => m.id);
+        count = ids.length;
+        await db.query('DELETE FROM sessions WHERE member_id=ANY($1::text[])', [ids]);
+        await db.query(
+          'UPDATE activation_tokens SET used_at=now() WHERE member_id=ANY($1::text[]) AND used_at IS NULL',
+          [ids],
+        );
+        await audit(
+          u.id,
+          'account.bulk_testing_password',
+          'non-admin-members',
+          { count, purpose: 'Nov 15–18 familiarity testing; admin ends testing manually' },
+          db,
+        );
+      });
+      return Response.json({
+        ok: true,
+        count,
+        message: `Testing password set for ${count} non-admin members. They can sign in normally until you trigger End testing. Admin accounts were excluded.`,
+      });
+    }
+    if (b.action === 'bulkRequirePersonalPasswords') {
+      if (!isAdmin(u)) fail('Administrator access required.', 403);
+      if (b.confirm !== 'yes') fail('Confirm that testing is complete.');
+      let count = 0;
+      await transaction(async (db: any) => {
+        const changed = await db.query(
+          "UPDATE members SET password_change_required=true WHERE pcm<>'PCM0001' AND NOT ('admin'=ANY(roles)) RETURNING id",
+        );
+        const ids = changed.rows.map((m: any) => m.id);
+        count = ids.length;
+        await db.query('DELETE FROM sessions WHERE member_id=ANY($1::text[])', [ids]);
+        await db.query(
+          'UPDATE activation_tokens SET used_at=now() WHERE member_id=ANY($1::text[]) AND used_at IS NULL',
+          [ids],
+        );
+        await audit(
+          u.id,
+          'account.bulk_require_personal_passwords',
+          'non-admin-members',
+          { count },
+          db,
+        );
+      });
+      return Response.json({
+        ok: true,
+        count,
+        message: `Testing ended for ${count} non-admin members. At their next sign-in they must replace their current password with a different personal password. Admin accounts were excluded.`,
       });
     }
     if (b.action === 'reset') {

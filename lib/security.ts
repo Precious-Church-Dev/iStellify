@@ -44,14 +44,16 @@ export async function currentUser(): Promise<Person | null> {
   const key = (await cookies()).get('istelli_session')?.value;
   if (!key) return null;
   const result = await query(
-    `SELECT m.id,m.pcm,m.name,m.nickname,m.tag,m.roles,m.active,m.spiritual_state FROM sessions s JOIN members m ON m.id=s.member_id WHERE s.token_hash=$1 AND s.last_active>now()-interval '5 minutes' AND s.created_at>now()-interval '12 hours' AND m.active=true`,
+    `SELECT m.id,m.pcm,m.name,m.nickname,m.tag,m.roles,m.active,m.spiritual_state,m.password_change_required FROM sessions s JOIN members m ON m.id=s.member_id WHERE s.token_hash=$1 AND s.last_active>now()-interval '5 minutes' AND s.created_at>now()-interval '12 hours' AND m.active=true`,
     [digest(key)],
   );
   return (result.rows[0] as Person) || null;
 }
-export async function requireUser() {
+export async function requireUser(allowTemporary = false) {
   const user = await currentUser();
   if (!user) throw new HttpError(401, 'Your session has ended. Please sign in again.');
+  if (user.password_change_required && !allowTemporary)
+    throw new HttpError(403, 'Choose your own password before opening member records.');
   return user;
 }
 export async function memberships(id: string): Promise<Membership[]> {

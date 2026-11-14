@@ -7,6 +7,7 @@ export type Person = {
   roles: string[];
   active: boolean;
   spiritual_state?: string;
+  password_change_required?: boolean;
 };
 export type Membership = {
   group_id: string;

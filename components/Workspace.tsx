@@ -924,16 +924,86 @@ export default function Workspace() {
           {view === 'admin' && s.admin && (
             <>
               <div className="tabs">
-                {['members', 'import', 'groups', 'guardians', 'exceptions', 'audit'].map((t) => (
-                  <button
-                    key={t}
-                    className={adminTab === t ? 'selected' : ''}
-                    onClick={() => setAdminTab(t)}
-                  >
-                    {t === 'import' ? 'Roster import' : t[0].toUpperCase() + t.slice(1)}
-                  </button>
-                ))}
+                {['members', 'testing', 'import', 'groups', 'guardians', 'exceptions', 'audit'].map(
+                  (t) => (
+                    <button
+                      key={t}
+                      className={adminTab === t ? 'selected' : ''}
+                      onClick={() => setAdminTab(t)}
+                    >
+                      {t === 'import' ? 'Roster import' : t[0].toUpperCase() + t.slice(1)}
+                    </button>
+                  ),
+                )}
               </div>
+              {adminTab === 'testing' && (
+                <section className="panel">
+                  <h2>Bulk temporary testing password</h2>
+                  <p className="muted">
+                    Set one temporary password for all{' '}
+                    {
+                      s.admin.members.filter(
+                        (m: any) => m.pcm !== 'PCM0001' && !m.roles.includes('admin'),
+                      ).length
+                    }{' '}
+                    non-admin members, including accounts pending activation. Every administrator
+                    account is excluded.
+                  </p>
+                  <p>
+                    Familiarity testing: November 15–18, 2026. Members can sign in normally with
+                    this shared password. It stays in place until you manually end testing below.
+                  </p>
+                  <p>
+                    This replaces their current passwords, signs them out, and cancels unused
+                    activation codes. It does not erase their entries.
+                  </p>
+                  <SimpleForm
+                    label="Set temporary password for all non-admin members"
+                    onSubmit={async (d) => {
+                      const result = await act({ ...d, action: 'bulkTestingPassword' });
+                      setAdminTab('members');
+                      return result;
+                    }}
+                  >
+                    <label>
+                      Temporary testing password
+                      <input
+                        name="password"
+                        type="password"
+                        autoComplete="new-password"
+                        minLength={12}
+                        maxLength={128}
+                        required
+                      />
+                    </label>
+                    <label className="check-label">
+                      <input name="confirm" type="checkbox" value="yes" required />I understand this
+                      replaces existing non-admin passwords. Admin passwords stay unchanged.
+                    </label>
+                  </SimpleForm>
+                  <hr className="spaced" />
+                  <h3>When familiarity testing is complete</h3>
+                  <p>
+                    Use this after November 18 when you are ready. All non-admin members will be
+                    signed out. They sign in with their current testing password, then choose a
+                    different personal password before opening their account.
+                  </p>
+                  <SimpleForm
+                    label="End testing / require personal passwords"
+                    onSubmit={async (d) => {
+                      const result = await act({ ...d, action: 'bulkRequirePersonalPasswords' });
+                      setAdminTab('members');
+                      return result;
+                    }}
+                  >
+                    <label className="check-label">
+                      <input name="confirm" type="checkbox" value="yes" required />
+                      Testing is complete. Require all non-admin members to choose their own
+                      password.
+                    </label>
+                  </SimpleForm>
+                </section>
+              )}
               {adminTab === 'exceptions' && (
                 <section className="panel">
                   <h2>Allow a period correction</h2>

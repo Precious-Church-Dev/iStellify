@@ -29,6 +29,50 @@ export async function POST(req: Request) {
       await query('UPDATE sessions SET last_active=now() WHERE token_hash=$1', [digest(v!)]);
       return Response.json({ ok: true });
     }
+    if (action === 'changeTemporaryPassword') {
+      const user = await requireUser(true);
+      if (!user.password_change_required)
+        throw new HttpError(400, 'No temporary password change is required.');
+      const password = String(data.password || '');
+      if (password.length < 12 || password.length > 128)
+        throw new HttpError(400, 'Use a password between 12 and 128 characters.');
+      const hash = await passwordHash(password);
+      const session = (await cookies()).get('istelli_session')?.value;
+      await transaction(async (db: any) => {
+        const member = (
+          await db.query(
+            'SELECT password_hash,password_change_required FROM members WHERE id=$1 FOR UPDATE',
+            [user.id],
+          )
+        ).rows[0];
+        const liveSession = await db.query(
+          'SELECT token_hash FROM sessions WHERE token_hash=$1 AND member_id=$2',
+          [digest(session!), user.id],
+        );
+        if (!liveSession.rows.length)
+          throw new HttpError(401, 'Your session has ended. Please sign in again.');
+        if (!member?.password_change_required)
+          throw new HttpError(400, 'No password change is required. Please sign in again.');
+        if (await verifyPassword(password, member.password_hash))
+          throw new HttpError(
+            400,
+            'Choose a different password from the temporary testing password.',
+          );
+        await db.query(
+          'UPDATE members SET password_hash=$1,password_change_required=false WHERE id=$2',
+          [hash, user.id],
+        );
+        await db.query('DELETE FROM sessions WHERE member_id=$1 AND token_hash<>$2', [
+          user.id,
+          digest(session!),
+        ]);
+        await db.query('UPDATE sessions SET last_active=now() WHERE token_hash=$1', [
+          digest(session!),
+        ]);
+        await audit(user.id, 'account.temporary_password_changed', user.id, {}, db);
+      });
+      return Response.json({ ok: true });
+    }
     if (action === 'setup') {
       await throttle('bootstrap', 10);
       if (
@@ -62,7 +106,10 @@ export async function POST(req: Request) {
         );
         if (!r.rows.length) throw new HttpError(400, 'This activation code is invalid or expired.');
         const id = r.rows[0].member_id;
-        await db.query('UPDATE members SET password_hash=$1 WHERE id=$2', [hash, id]);
+        await db.query(
+          'UPDATE members SET password_hash=$1,password_change_required=false WHERE id=$2',
+          [hash, id],
+        );
         await db.query('UPDATE activation_tokens SET used_at=now() WHERE token_hash=$1', [
           digest(raw),
         ]);
@@ -87,10 +134,19 @@ export async function POST(req: Request) {
     if (!member?.password_hash || !ok)
       throw new HttpError(401, 'Church number or password is incorrect.');
     const raw = token();
-    await query('INSERT INTO sessions(token_hash,member_id) VALUES($1,$2)', [
-      digest(raw),
-      member.id,
-    ]);
+    await transaction(async (db: any) => {
+      const current = (
+        await db.query('SELECT password_hash FROM members WHERE id=$1 AND active=true FOR UPDATE', [
+          member.id,
+        ])
+      ).rows[0];
+      if (!current || current.password_hash !== member.password_hash)
+        throw new HttpError(401, 'The account changed. Please sign in again.');
+      await db.query('INSERT INTO sessions(token_hash,member_id) VALUES($1,$2)', [
+        digest(raw),
+        member.id,
+      ]);
+    });
     (await cookies()).set('istelli_session', raw, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production' && process.env.LOCAL_DATABASE !== 'true',
