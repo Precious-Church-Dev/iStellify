@@ -13,3 +13,19 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - name: Exercise PRD 2.1 workflows with synthetic local data
+        env:
+          DEMO_PASSWORD: Synthetic-CI-Only-2026
+          APP_URL: http://127.0.0.1:3000
+          LOCAL_DATABASE: 'true'
+        run: |
+          npm run seed:demo
+          npm start > /tmp/istellify.log 2>&1 &
+          for i in $(seq 1 45); do
+            if curl --fail --silent http://127.0.0.1:3000/api/health; then break; fi
+            sleep 1
+          done
+          node scripts/check-v21.mjs
+      - name: Show server diagnostics on failure
+        if: failure()
+        run: cat /tmp/istellify.log 2>/dev/null || true
