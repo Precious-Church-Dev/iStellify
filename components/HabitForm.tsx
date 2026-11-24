@@ -1,7 +1,9 @@
 'use client';
 import { useState } from 'react';
 import { X, Upload, Clock3, Check } from 'lucide-react';
+import {cardPeriod,submissionOpen} from '@/lib/cards';
 type Props = {
+  state:any;
   habit: string;
   title?: string;
   existing?: any;
@@ -14,6 +16,7 @@ type Props = {
 };
 export default function HabitForm({
   habit,
+  state,
   title,
   existing,
   date,
@@ -26,7 +29,9 @@ export default function HabitForm({
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [attachment, setAttachment] = useState(existing?.data?.attachmentId || ''),
-    [uploading, setUploading] = useState(false);
+    [uploading, setUploading] = useState(false),[unlock,setUnlock]=useState(false),[reason,setReason]=useState(''),[care,setCare]=useState('');
+  const period=cardPeriod(habit,date);
+  const editable=submissionOpen(habit,period,new Date(),state.timezone)||state.unlocks.some((r:any)=>r.member_id===subject&&r.habit===habit&&r.period===period&&r.status==='approved'&&Date.parse(r.expires_at)>Date.now());
   const d = existing?.data || {};
   async function upload(file: File) {
     setUploading(true);
@@ -35,6 +40,7 @@ export default function HabitForm({
       const f = new FormData();
       f.set('file', file);
       f.set('subject', subject);
+      f.set('habit',habit);
       const r = await fetch('/api/attachments', { method: 'POST', body: f });
       const b = await r.json();
       if (!r.ok) throw new Error(b.error);
@@ -54,8 +60,11 @@ export default function HabitForm({
     const data: any = Object.fromEntries(new FormData(e.currentTarget));
     for (const k of ['morning', 'adhoc', 'evening', 'done']) data[k] = data[k] === 'on';
     if (attachment) data.attachmentId = attachment;
+    const support={kind:data.careKind,recipient:data.careRecipient,details:data.careDetails,category:data.careCategory,format:data.careFormat,level:data.careLevel};
+    Object.keys(data).filter(k=>k.startsWith('care')).forEach(k=>delete data[k]);
     try {
       await act({ action: 'log', habit, date, subject, version: existing?.version, draft, data });
+      if(!draft&&support.kind)await act({action:'pastoralRequest',...support});
       onSaved();
     } catch (e) {
       setError((e as Error).message);
@@ -66,7 +75,7 @@ export default function HabitForm({
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <section
-        className="modal"
+        className="modal standard-stellicard"
         role="dialog"
         aria-modal="true"
         aria-labelledby="habit-heading"
@@ -82,6 +91,7 @@ export default function HabitForm({
           </button>
         </header>
         <form onSubmit={submit}>
+          <fieldset className="card-form-fields" disabled={!editable}>
           <div className="ibal-label">
             <span>1</span>
             <strong>iBlock</strong>
@@ -222,12 +232,12 @@ export default function HabitForm({
                     : 'Attach handwritten notes'}
                 <input
                   type="file"
-                  accept="image/png,image/jpeg,application/pdf"
+                  accept="image/png,image/jpeg,image/webp,image/heic,application/pdf"
                   onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}
                 />
               </label>
               <small className="muted">
-                PNG, JPEG or PDF. Maximum 2 MB. Visible only to authorized reviewers.
+                PNG, JPEG, WEBP or HEIC up to 10 MB with church Drive configured; otherwise PNG/JPEG/PDF up to 2 MB. Authorized reviewers only.
               </small>
             </>
           )}
@@ -316,6 +326,7 @@ export default function HabitForm({
                   1 · Struggling &nbsp; 5 · Thriving. Assigned Care Servants can see this rating.
                 </small>
               </fieldset>
+              <div className="pastoral-actions"><h3>Reach out for support</h3><label>Action<select name="careKind" value={care} onChange={e=>setCare(e.target.value)}><option value="">No request</option><option value="prayer">Ask for Prayer</option><option value="counsel">Ask for Counseling</option><option value="review">Ask for Review / Breaking of Bread</option></select></label>{care&&<><label>Recipient{care==='counsel'?' · confidential':''}<select name="careRecipient" required={care==='counsel'}><option value="">Assigned leaders</option>{state.leaders.map((l:any)=><option key={l.id} value={l.id}>{l.name} · {l.pcm}</option>)}</select></label>{care==='prayer'&&<label>Prayer category<select name="careCategory">{['Health / Healing','Family / Relationships','Work / Finances','Spiritual Growth','Thanksgiving','Other'].map(x=><option key={x}>{x}</option>)}</select></label>}{care==='counsel'&&<label>Preferred format<select name="careFormat"><option>In-person</option><option>Online</option></select></label>}{care==='review'&&<label>Breaking of Bread level<select name="careLevel"><option value="member">Member · one-on-one</option><option value="group">Care Group</option></select></label>}<label>Request details<textarea name="careDetails" maxLength={4000}/></label><small>Sent with your submitted weekly rating. Counseling details are visible only to the recipient you select.</small></>}</div>
               <label>
                 Anything you would like your leaders to know?
                 <textarea name="notes" defaultValue={d.notes} />
@@ -409,7 +420,10 @@ export default function HabitForm({
               {busy ? 'Saving…' : 'Submit activity'}
             </button>
           </div>
+          </fieldset>
         </form>
+        <div className="card-unlock-bar"><p className="fine-print">{editable?'Submission window open':'Locked / read-only'} · {period} · {state.timezone}</p><button className="text-button" onClick={()=>setUnlock(!unlock)}>Request Unlock</button></div>
+        {unlock&&<form onSubmit={async e=>{e.preventDefault();setError('');setBusy(true);try{await act({action:'requestUnlock',subject,habit,date,reason});setUnlock(false)}catch(err){setError((err as Error).message)}finally{setBusy(false)}}}><label>Justification · at least 20 words<textarea required maxLength={4000} value={reason} onChange={e=>setReason(e.target.value)}/></label><button className="button primary" disabled={busy}>Send unlock request</button></form>}
       </section>
     </div>
   );

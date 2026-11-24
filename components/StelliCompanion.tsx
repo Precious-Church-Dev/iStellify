@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import Mascot from './Mascot';
 import { X, Sparkles } from 'lucide-react';
 type Face = 'smile' | 'welcome' | 'wave' | 'cheer';
 export default function StelliCompanion({
@@ -7,11 +8,13 @@ export default function StelliCompanion({
   name,
   kids,
   celebration,
+  completed,
 }: {
   memberId: string;
   name: string;
   kids: boolean;
   celebration: number;
+  completed:boolean;
 }) {
   const [open, setOpen] = useState(false),
     [face, setFace] = useState<Face>('smile'),
@@ -69,7 +72,7 @@ export default function StelliCompanion({
     >
       {open && (
         <div className="stelli-speech" role="status" aria-live="polite">
-          <span className="eyebrow">{kids ? 'SKIDIGREET' : 'STELLIGREET'}</span>
+          <span className="eyebrow">{kids ? 'SKIDISTAT' : 'STELLISTAT'}</span>
           <strong>{message}</strong>
           <p>
             {face === 'cheer'
@@ -93,7 +96,7 @@ export default function StelliCompanion({
         onClick={greet}
         aria-label={open ? 'Replay Stelli greeting' : 'Open Stelli greeting'}
       >
-        <img src="/brand/stelli-bot.png" alt="" width={611} height={642} />
+        <Mascot completed={completed}/>
         {open && (
           <span className={'stelli-screen face-' + face} aria-hidden="true">
             {face === 'welcome' ? (

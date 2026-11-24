@@ -37,7 +37,7 @@ export default function MemberOverview({
   const stateLabel = person.spiritual_state || 'SBG';
   const hour = Number(
     new Intl.DateTimeFormat('en-US', {
-      timeZone: 'Asia/Manila',
+      timeZone: s.timezone || 'Asia/Manila',
       hour: 'numeric',
       hour12: false,
     }).format(new Date()),
@@ -48,8 +48,8 @@ export default function MemberOverview({
     <div className={'member-overview ' + (kids ? 'kids-overview' : '')}>
       <section className="greet-panel">
         <div className="greet-character">
-          <Mascot />
-          <span>{prefix}Greet</span>
+          <Mascot completed={daily>0}/>
+          <span>{prefix}Stat</span>
         </div>
         <div className="greet-message">
           <span className="eyebrow">
@@ -93,6 +93,7 @@ export default function MemberOverview({
           ))}
         </div>
       </section>
+      <div className="fragment-banner">✦ {s.profile.stellar_fragments} Stellar Fragments earned</div>
       <div className="overview-scorebar">
         <div>
           <Sun size={19} />
@@ -110,8 +111,8 @@ export default function MemberOverview({
             </strong>
           </span>
         </div>
-        <button onClick={() => onOpen('stat')}>
-          Open {prefix}Stat <ArrowRight size={16} />
+        <button onClick={() => onOpen('light')}>
+          Open StelliCards <ArrowRight size={16} />
         </button>
       </div>
       <div className="member-panel-grid">
@@ -245,7 +246,7 @@ export default function MemberOverview({
               <span className="section-symbol">
                 <Target size={19} />
               </span>
-              <h2>{prefix}Goal</h2>
+              <h2>{prefix}Base</h2>
             </div>
             <button className="text-button" onClick={() => onOpen('goals')}>
               Open
@@ -270,7 +271,7 @@ export default function MemberOverview({
           <button className="rating-summary" onClick={() => onOpen('rate')}>
             <Activity size={19} />
             <span>
-              <strong>{prefix}Rate</strong>
+              <strong>{prefix}Grade</strong>
               <small>
                 {kids ? 'Private growth checkpoints' : 'Weekly reflection and growth checkpoints'}
               </small>

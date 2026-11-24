@@ -286,6 +286,7 @@ export default function MinistryModule({
             )}
           </div>
           <nav className="module-tabs ministry-tabs" aria-label={label + ' sections'}>
+            {module==='care'&&(data.leader||state.user.roles.some((r:string)=>['admin','pastor'].includes(r)))&&<button onClick={onReview}>iStellCheck</button>}
             {tabs.map(([key, name]) => (
               <button key={key} className={tab === key ? 'active' : ''} onClick={() => setTab(key)}>
                 {name}
@@ -391,7 +392,7 @@ export default function MinistryModule({
                   <div className="leader-actions">
                     {data.leader && (
                       <button className="button primary" onClick={onReview}>
-                        {module === 'care' ? 'iCareCheck' : 'iShareCheck'}
+                        {module === 'care' ? 'iStellCheck' : 'iShareCheck'}
                         <ShieldCheck size={16} />
                       </button>
                     )}
