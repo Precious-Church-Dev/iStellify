@@ -478,7 +478,7 @@ export default function Workspace() {
               <Bell size={19} />
               {s.notifications.some((n: any) => !n.read_at) && <i />}
             </button>
-            <div className="avatar">{(u.nickname || u.name).slice(0, 1)}</div>
+            <div className="avatar"><img src={s.profile.has_avatar?'/api/media?kind=avatar&v='+s.serverNow:'/assets/mascot/stelli_happy.png'} alt="Your profile" style={{width:'100%',height:'100%',borderRadius:'50%',objectFit:'cover'}}/></div>
           </div>
         </header>
         <main className="content">

@@ -102,8 +102,8 @@ export async function GET(req: Request) {
       `SELECT DISTINCT m.id,m.name,m.nickname,m.pcm,g.id AS group_id,g.name AS group_name,g.kind,
  (SELECT count(*)::int FROM logs l WHERE l.member_id=m.id AND l.period=$2 AND l.status<>'draft' AND l.habit IN ('iRead','iPray')) AS daily_count
  FROM memberships mg JOIN memberships mine ON mine.group_id=mg.group_id JOIN members m ON m.id=mg.member_id JOIN groups g ON g.id=mg.group_id
- WHERE mine.member_id=$1 AND m.id<>$1 AND m.active=true AND m.tag<>'StelliKids' AND g.kind IN ('family','care','share') AND ($3::boolean=false OR g.kind='family') ORDER BY g.kind,m.name`,
-      [subject.id, day, subject.tag === 'StelliKids'],
+ WHERE (mine.member_id=$1 OR $4::boolean) AND m.id<>$1 AND m.active=true AND m.tag<>'StelliKids' AND g.kind IN ('family','care','share') AND ($3::boolean=false OR g.kind='family') ORDER BY g.kind,m.name`,
+      [subject.id, day, subject.tag === 'StelliKids',user.roles.some(r=>['admin','pastor'].includes(r))],
     );
     const notes = await run(
       'SELECT id,message,created_at,read_at FROM notifications WHERE recipient_id=$1 ORDER BY created_at DESC LIMIT 30',

@@ -94,6 +94,7 @@ export default function MemberOverview({
         </div>
       </section>
       <div className="fragment-banner">✦ {s.profile.stellar_fragments} Stellar Fragments earned</div>
+      {s.badges.map((b:any)=><div className="fragment-banner" key={b.year}>🏅 Brother’s Keeper · {b.year}<strong>{b.score} impact points</strong></div>)}
       <div className="overview-scorebar">
         <div>
           <Sun size={19} />

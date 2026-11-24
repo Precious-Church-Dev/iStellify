@@ -29,7 +29,7 @@ export default function HabitForm({
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [attachment, setAttachment] = useState(existing?.data?.attachmentId || ''),
-    [uploading, setUploading] = useState(false),[unlock,setUnlock]=useState(false),[reason,setReason]=useState(''),[care,setCare]=useState(''),[digital,setDigital]=useState(existing?.data?.digitalNotes===true),[clock,setClock]=useState(new Date());
+    [uploading, setUploading] = useState(false),[unlock,setUnlock]=useState(false),[reason,setReason]=useState(''),[care,setCare]=useState(''),[digital,setDigital]=useState(existing?.data?.digitalNotes===true),[clock,setClock]=useState(new Date()),[rating,setRating]=useState(Number(existing?.data?.rating||0));
   useEffect(()=>{const t=setInterval(()=>setClock(new Date()),1000);return()=>clearInterval(t)},[]);
   const period=cardPeriod(habit,date);
   const editable=submissionOpen(habit,period,clock,state.timezone)||state.unlocks.some((r:any)=>r.member_id===subject&&r.habit===habit&&r.period===period&&r.status==='approved'&&Date.parse(r.expires_at)>Date.now());
@@ -320,6 +320,7 @@ export default function HabitForm({
                         type="radio"
                         value={n}
                         defaultChecked={Number(d.rating) === n}
+                        onChange={()=>setRating(n)}
                         required
                       />
                       <span>{['😞','🙁','😐','🙂','😄'][n-1]} {n}</span>
@@ -330,7 +331,7 @@ export default function HabitForm({
                   1 · Struggling &nbsp; 5 · Thriving. Assigned Care Servants can see this rating.
                 </small>
               </fieldset>
-              <div className="pastoral-actions"><h3>Reach out for support</h3><label>Action<select name="careKind" value={care} onChange={e=>setCare(e.target.value)}><option value="">No request</option><option value="prayer">Ask for Prayer</option><option value="counsel">Ask for Counseling</option><option value="review">Ask for Review / Breaking of Bread</option></select></label>{care&&<><label>Recipient{care==='counsel'?' · confidential':''}<select name="careRecipient" required={care==='counsel'}><option value="">Assigned leaders</option>{state.leaders.map((l:any)=><option key={l.id} value={l.id}>{l.name} · {l.pcm}</option>)}</select></label>{care==='prayer'&&<label>Prayer category<select name="careCategory">{['Health / Healing','Family / Relationships','Work / Finances','Spiritual Growth','Thanksgiving','Other'].map(x=><option key={x}>{x}</option>)}</select></label>}{care==='counsel'&&<label>Preferred format<select name="careFormat"><option>In-person</option><option>Online</option></select></label>}{care==='review'&&<label>Breaking of Bread level<select name="careLevel"><option value="member">Member · one-on-one</option><option value="group">Care Group</option></select></label>}<label>Request details<textarea name="careDetails" maxLength={4000}/></label><small>Sent with your submitted weekly rating. Counseling details are visible only to the recipient you select.</small></>}</div>
+              <div className={'pastoral-actions '+(rating>0&&rating<=2?'support-suggested':'')}><h3>Reach out for support</h3>{rating>0&&rating<=2&&<p>Your leaders are here for you. Choose any support you would like.</p>}<input type="hidden" name="careKind" value={care}/><div className="inline-actions">{[['prayer','Ask for Prayer'],['counsel','Ask for Counseling'],['review','Ask for Review']].map(([key,label])=><button type="button" className={'button '+(care===key?'primary':'secondary')} key={key} aria-pressed={care===key} onClick={()=>setCare(care===key?'':key)}>{label}</button>)}</div>{care&&<><label>Recipient{care==='counsel'?' · confidential':''}<select name="careRecipient" required={care==='counsel'}><option value="">Assigned leaders</option>{state.leaders.map((l:any)=><option key={l.id} value={l.id}>{l.name} · {l.pcm}</option>)}</select></label>{care==='prayer'&&<label>Prayer category<select name="careCategory">{['Health / Healing','Family / Relationships','Work / Finances','Spiritual Growth','Thanksgiving','Other'].map(x=><option key={x}>{x}</option>)}</select></label>}{care==='counsel'&&<label>Preferred format<select name="careFormat"><option>In-person</option><option>Online</option></select></label>}{care==='review'&&<label>Breaking of Bread level<select name="careLevel"><option value="member">Member · one-on-one</option><option value="group">Care Group</option></select></label>}<label>Request details<textarea name="careDetails" maxLength={4000}/></label><small>Sent with your submitted weekly rating. Counseling details are visible only to the recipient you select.</small></>}</div>
               <label>
                 Anything you would like your leaders to know?
                 <textarea name="notes" defaultValue={d.notes} />

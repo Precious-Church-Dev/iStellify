@@ -33,4 +33,14 @@ r=await call(admin,{action:'event',name:'Synthetic church event',startsAt:new Da
 r=await call(member,{action:'profile',name:'Alex Sample',nickname:'Alex',bio:'A short testimony',phone:'+639171234567',email:'alex@example.test',timezone:'Asia/Manila'});assert.equal(r.status,200,JSON.stringify(r.body));assert.equal((await call(member)).body.profile.bio,'A short testimony');
 assert.equal((await call(member,{action:'profile',bio:'x'.repeat(251)})).status,400);
 r=await call(member,{action:'adoptLifeCard',habit:'iDrink'});assert.equal(r.status,200);assert.ok((await call(member)).body.commitments.some(c=>c.habit==='iDrink'));console.log('PASS profile validation and preconfigured life card');
+r=await call(servant,{action:'nudge',id:'demo-PCM0003',habit:'iRead',message:'A gentle reminder to read and reflect today.'});assert.equal(r.status,200,JSON.stringify(r.body));
+await call(servant,{action:'nudge',id:'demo-PCM0003',habit:'iRead'});
+r=await call(member,{action:'log',habit:'iRead',date:today,data:{type:'Read the Bible',activities:['Read the Bible'],duration:10}});assert.equal(r.status,200,JSON.stringify(r.body));
+s=(await call(admin)).body;const nudger=s.nudgeStats.find(n=>n.id==='demo-PCM0004');assert.equal(nudger.sent,1);assert.equal(nudger.followed_through,1);assert.equal(nudger.score,3);assert.equal(s.nudgeReceived.find(n=>n.id==='demo-PCM0003').received,1);console.log('PASS per-card nudge cooldown and approved impact scoring');
+r=await call(admin,{action:'unlockPeriod',id:'demo-PCM0003',habit:'iRate',date:today,reason:'Synthetic test of the missed weekly card and follow-up review.'});assert.equal(r.status,200,JSON.stringify(r.body));
+r=await call(member,{action:'log',habit:'iRate',date:today,data:{rating:2,notes:'Synthetic weekly reflection'}});assert.equal(r.status,200,JSON.stringify(r.body));
+r=await call(member,{action:'pastoralRequest',kind:'counsel',recipient:'demo-PCM0004',details:'Synthetic confidential support request'});assert.equal(r.status,200,JSON.stringify(r.body));
+assert.equal((await call(outsider)).body.pastoralRequests.length,0);assert.equal((await call(admin)).body.pastoralRequests.length,0);assert.ok((await call(servant)).body.pastoralRequests.some(p=>p.kind==='counsel'));console.log('PASS selected-recipient counseling confidentiality');
+const review=(await call(servant)).body.review.find(l=>l.habit==='iRate'&&l.member_id==='demo-PCM0003');assert.ok(review);
+r=await call(servant,{action:'review',id:review.id,version:review.version,decision:'confirmed'});assert.equal(r.status,200,JSON.stringify(r.body));console.log('PASS grace submission follow-up verification');
 console.log('All PRD 2.1 synthetic integration checks passed.');
