@@ -1,5 +1,7 @@
 # iStellify
 
+PRD 2.1 setup, integration settings, card deadlines and operational details: [Version 2.1 operations](docs/PRD-2.1.md).
+
 Precious Church's private member growth and ministry application. The pilot includes authentication, roster import, habit logs, scoped groups, independent verification, tithe declarations/reconciliation, guardian-assisted Kids logging and administration, with the module structure from the supplied wireframes.
 
 ## Member experience
@@ -67,7 +69,7 @@ In **StelliAd > Testing**, an administrator can set a shared familiarity-testing
 - PCM is an identifier; passwords use salted scrypt hashes. Sessions are opaque random tokens, stored hashed in PostgreSQL, with HttpOnly and SameSite cookies and Secure cookies in production.
 - Five-minute inactivity expiration is enforced on the server. Browser events send bounded activity heartbeats; background polling does not extend sessions. Sessions have a 12-hour absolute limit. Logout/reset/deactivation revoke them.
 - Cookie-authenticated writes require the configured same origin. Login and activation have database-backed attempt limits.
-- Authorization happens on the server for every operation. A member cannot approve their own entry. Daily devotional review exposes completion metadata only; journals remain private. Personal habit reflections remain private. Financial values are restricted to the member, scoped auditors and Pastor.
+- Authorization happens on the server for every operation. A member cannot approve their own entry. Daily devotional logs are auto-verified; journals remain private. Personal habit reflections remain private. Financial values are restricted to the member, Admin and scoped auditors.
 - Group membership is distinct from financial scope. Private child records require explicit guardian links or the relevant authorized weekly review role. Guardians can be revoked immediately.
 - Corrections create immutable prior revisions and return to pending review. Concurrent versions cannot silently overwrite an existing record. Tithe calculation uses integer cents and an independently recorded receipt amount; discrepancies block confirmation.
 - Workbook import previews changes, excludes plaintext passwords and health fields, keeps accounts separate when email is shared and protects exact-file/repeated-commit retries. Existing group roles are not overwritten by reimport. Auxiliary sheets require manual scope review.
@@ -77,15 +79,15 @@ In **StelliAd > Testing**, an administrator can set a shared familiarity-testing
 
 This is a working **pilot**, not the full PRD implementation or a production compliance certification.
 
-- Currency is PHP and Sunday begins the week in Asia/Manila. Daily schedules lock to a calendar week, weekly to a month, monthly to a quarter. Closed spiritual periods require an audited, time-limited administrator exception. Owner confirmation is still needed for excusal, grace and theological progression policies.
-- iRead, iPray, iPraise, iNote, iCare, iSpeak, iTithes, weekly iRate and monthly iShare are available. Daily prayer supports private partial drafts. Custom habits support daily/weekly/monthly frequency; arbitrary weekday schedules and the premade library are future work.
-- Digital notes are enabled for the pilot rather than implementing the final selected-member entitlement and full BUP/BSF structured editor. Generic personal custom habits are self-reported; spiritual activities have independent review queues.
+- Currency is PHP and Sunday begins the week in Asia/Manila. Daily submissions lock at midnight in the member timezone; Sunday and monthly card deadlines are listed in the 2.1 operations guide. Closed periods require an audited, time-limited unlock approval. Owner confirmation is still needed for excusal, grace and theological progression policies.
+- iRead, iPray, iPraise, iNote, iCare, iSpeak, iTithes, weekly iRate and monthly iShare are available. Daily prayer supports private partial drafts. Custom habits support daily/weekly/monthly frequency and selected period schedules; the StelliLife library includes the PRD presets.
+- Digital notes can be enabled in iNoteCard to record BUP/BSF fields. Generic personal custom habits are self-reported; spiritual activities have independent review queues.
 - Children have iRead/iPray/iPraise/iTithes/iNote and custom habits, matching the Kids wireframe. Guardian-assisted giving records retain the same private financial authorization. Kids links show family scope only. The experience tag is not age verification or a legal consent determination.
 - Tithe reasons provisionally include both source lists. There are declarations and manual receipt reconciliation; no payment gateway or automatic bank matching.
-- Automatic scheduled reminders, external email/push, AI chat, automatic theological progression, StelliCoach, advanced historical analytics and full PRD reporting remain on the backlog. Ministry resources use text and links; an embedded slide presentation editor is not included. Health values are private self-reported records, with an adult numeric BMI calculation and no clinical interpretation.
+- Automatic scheduled reminders, external push, AI chat, automatic theological progression, advanced historical analytics and full PRD reporting remain on the backlog. Ministry resources use text and links; an embedded slide presentation editor is not included. Health values are private self-reported records, with an adult numeric BMI calculation and no clinical interpretation.
 - In-app peer nudges have one-per-sender/recipient/day and three-per-recipient/day limits. Notification preferences, quiet-hour delivery scheduling and automatic reminders are later work.
-- Attachments are privately stored in PostgreSQL for this small pilot (PNG/JPEG/PDF, 2 MB each, limited daily uploads), so they survive deploys and are covered by database backups. This deliberately avoids Render's ephemeral filesystem. Downloads use `application/octet-stream` and authorization. A malware scanner and external object/Drive storage adapter are **not** implemented; restrict pilot uploads to trusted testers until these are reviewed. Limit total media growth on the small database.
-- MFA, account recovery outside administrator-issued codes, Google login, privacy consent text/versioning, formal retention/erasure procedures, public rate-limit abuse review and a full accessibility audit remain launch-hardening work. No real financial/medical/child-data launch should be inferred from a successful build.
+- Attachments use private PostgreSQL storage for files up to 2 MB; configured church Drive stores iNote images up to 10 MB. This deliberately avoids Render's ephemeral filesystem. Downloads use `application/octet-stream` and authorization. A malware scanner is **not** implemented; restrict pilot uploads to trusted testers until these are reviewed. Limit total media growth on the small database.
+- MFA, privacy consent text/versioning, formal retention/erasure procedures, public rate-limit abuse review and a full accessibility audit remain launch-hardening work. No real financial/medical/child-data launch should be inferred from a successful build.
 
 ## Architecture
 

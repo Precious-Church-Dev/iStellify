@@ -4,6 +4,7 @@ export const MODULES = [
   { id: 'care', label: 'StelliCare', caption: 'Caring and Bearing Ministry' },
   { id: 'share', label: 'StelliShare', caption: 'Sharing and Bearing Ministry' },
   { id: 'church', label: 'StelliChurch', caption: 'Our church community' },
+  { id: 'coach', label: 'StelliCoach', caption: 'Guides and holistic life learning' },
   { id: 'finance', label: 'StelliTithes', caption: 'Stewardship and reconciliation' },
   { id: 'settings', label: 'StelliSet', caption: 'Your profile and preferences' },
   { id: 'admin', label: 'StelliAd', caption: 'Church administration' },
@@ -14,19 +15,20 @@ export function landingModule(tag: string): ModuleId {
 }
 export function memberSections(kids: boolean) {
   return [
-    { id: 'home', label: kids ? 'SkidiGreet' : 'StelliGreet' },
+    { id: 'home', label: kids ? 'SkidiStat' : 'StelliStat' },
     { id: 'light', label: kids ? 'SkidiLight' : 'StelliLight' },
     { id: 'life', label: kids ? 'SkidiLife' : 'StelliLife' },
-    { id: 'stat', label: kids ? 'SkidiStat' : 'StelliStat' },
     { id: 'groups', label: kids ? 'SkidiLink' : 'StelliLink' },
     ...(!kids
       ? [
           { id: 'save', label: 'StelliSave' },
           { id: 'best', label: 'StelliBEST' },
+          { id: 'cleanse', label: 'StelliCleanse' },
+          { id: 'lot', label: 'StelliLOT' },
         ]
       : []),
-    { id: 'goals', label: kids ? 'SkidiGoal' : 'StelliGoal' },
-    { id: 'rate', label: kids ? 'SkidiRate' : 'StelliRate' },
+    { id: 'goals', label: kids ? 'SkidiBase' : 'StelliBase' },
+    { id: 'rate', label: kids ? 'SkidiGrade' : 'StelliGrade' },
   ];
 }
 export function moduleAllowed(
@@ -34,7 +36,8 @@ export function moduleAllowed(
   user: { tag: string; roles: string[] },
   children: number,
 ) {
-  if (id === 'admin') return user.roles.includes('admin');
+  if (id === 'admin' || id === 'finance')
+    return user.roles.some((r) => ['admin', 'auditor'].includes(r));
   if (id === 'individual') return user.tag !== 'StelliKids';
   if (id === 'kids')
     return user.tag === 'StelliKids' || children > 0 || user.roles.includes('admin');

@@ -1,4 +1,10 @@
 'use client';
+import WeeklyCard from './WeeklyCard';
+import Profile from './Profile';
+import CommitmentForm from './CommitmentForm';
+import Baptism from './Baptism';
+import { Coach, ChurchCalendar, ReviewDashboard, UnlockQueue, NudgePanel } from './Updates';
+import { LIFE_CARDS, cardPeriod, reviewOpen } from '@/lib/cards';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
@@ -277,7 +283,7 @@ export default function Workspace() {
     : DAILY.concat(WEEKLY, MONTHLY);
   const entry = (habit: string, frequency?: string) =>
     s.logs.find(
-      (l: any) => l.habit === habit && l.period === periodFor(habit, activeDate, frequency),
+      (l: any) => l.habit === habit && l.period === cardPeriod(habit, activeDate, frequency),
     );
   const dayDone = DAILY.filter((h) => entry(h) && entry(h).status !== 'draft').length,
     weekDone = allHabits.filter(
@@ -298,7 +304,9 @@ export default function Workspace() {
             ? l.habit === 'iTithes'
             : true),
   );
-  const navigation = MODULES.map((m) => [
+  const navigation = MODULES.filter(
+    (m) => !['finance', 'admin'].includes(m.id) || moduleAllowed(m.id, u, s.children.length),
+  ).map((m) => [
     m.id,
     m.label,
     (
@@ -308,6 +316,7 @@ export default function Workspace() {
         care: Users,
         share: Sparkles,
         church: BookOpen,
+        coach: BookOpen,
         finance: Wallet,
         settings: Settings,
         admin: LockKeyhole,
@@ -338,7 +347,9 @@ export default function Workspace() {
             ? 'tithes'
             : id === 'settings'
               ? 'settings'
-              : 'admin',
+              : id === 'coach'
+                ? 'coach'
+                : 'admin',
     );
   }
   const sectionName =
@@ -346,7 +357,7 @@ export default function Workspace() {
       ? 'Notifications'
       : view === 'review'
         ? moduleId === 'care'
-          ? 'iCareCheck'
+          ? 'iStellCheck'
           : moduleId === 'share'
             ? 'iShareCheck'
             : 'iTithesCheck'
@@ -471,7 +482,17 @@ export default function Workspace() {
               <Bell size={19} />
               {s.notifications.some((n: any) => !n.read_at) && <i />}
             </button>
-            <div className="avatar">{(u.nickname || u.name).slice(0, 1)}</div>
+            <div className="avatar">
+              <img
+                src={
+                  s.profile.has_avatar
+                    ? '/api/media?kind=avatar&v=' + s.serverNow
+                    : '/assets/mascot/stelli_happy.png'
+                }
+                alt="Your profile"
+                style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+              />
+            </div>
           </div>
         </header>
         <main className="content">
@@ -486,7 +507,7 @@ export default function Workspace() {
               <span className="eyebrow">
                 {kids ? 'LITTLE STEPS, BRIGHT STARS' : 'A LITTLE GROWTH, EVERY DAY'}
               </span>
-              <h1>{coreModule && view === 'home' ? moduleInfo.label : sectionName}</h1>
+              <h1>{sectionName}</h1>
               <p className="muted">
                 {view === 'home'
                   ? 'Make space for faith, purpose, and the people around you.'
@@ -532,8 +553,27 @@ export default function Workspace() {
             </nav>
           )}
           {coreModule && view === 'home' && (
-            <MemberOverview state={s} onOpen={go} onHabit={openHabit} />
+            <>
+              <MemberOverview state={s} onOpen={go} onHabit={openHabit} />
+              <PersonalSections
+                view="stat"
+                state={s}
+                date={activeDate}
+                onRefresh={refresh}
+                onWeeklyRate={() => openHabit('iRate')}
+              />
+            </>
           )}
+          {view === 'lot' && (
+            <section className="panel">
+              <span className="eyebrow">STELLILOT</span>
+              <h2>Latest of Today</h2>
+              <p className="muted">Coming in 2028.</p>
+            </section>
+          )}
+          {view === 'cleanse' && <Baptism state={s} act={act} />}
+          {moduleId === 'coach' && view === 'coach' && <Coach state={s} act={act} />}
+          {moduleId === 'church' && view === 'ministry' && <ChurchCalendar state={s} act={act} />}
           {coreModule && ['stat', 'goals', 'rate', 'save', 'best'].includes(view) && (
             <PersonalSections
               view={view}
@@ -577,7 +617,7 @@ export default function Workspace() {
                   <p className="muted">iBlock. iAct. iLog.</p>
                 </div>
                 <span className="frequency-note">
-                  <Clock3 size={15} /> One-week commitment window
+                  <Clock3 size={15} /> Daily lock · midnight
                 </span>
               </div>
               <div className="habit-grid">
@@ -590,7 +630,7 @@ export default function Workspace() {
                   <h2>Weekly Light</h2>
                   <p className="muted">Worship, learn, and connect.</p>
                 </div>
-                <span className="frequency-note">One-month commitment window</span>
+                <span className="frequency-note">Sunday submission deadlines</span>
               </div>
               <div className="habit-grid">
                 {WEEKLY.filter((h) => allHabits.includes(h)).map((h) => (
@@ -601,7 +641,7 @@ export default function Workspace() {
                 <>
                   <div className="section-heading">
                     <h2>Monthly Light</h2>
-                    <span className="frequency-note">One-quarter commitment window</span>
+                    <span className="frequency-note">Last Sunday deadline</span>
                   </div>
                   <div className="habit-grid">
                     <Card habit="iShare" />
@@ -613,46 +653,40 @@ export default function Workspace() {
           {view === 'life' && (
             <>
               <section className="panel">
+                <h2>StelliLife card library</h2>
+                <p className="muted">Choose a card to add to your personal habits.</p>
+                <div className="life-library">
+                  {LIFE_CARDS.map(([name, description]) => (
+                    <button
+                      key={name}
+                      className="life-preset"
+                      onClick={() => {
+                        const plan =
+                          description ||
+                          prompt('Describe your ' + name + ' habit (optional)') ||
+                          '';
+                        act({
+                          action: 'adoptLifeCard',
+                          habit: name,
+                          plan,
+                          subject: s.subject.id,
+                        }).catch((e) => setToast(e.message));
+                      }}
+                    >
+                      <strong>{name}</strong>
+                      <small>{description || 'Personalize your plan'}</small>
+                      <Plus size={14} />
+                    </button>
+                  ))}
+                </div>
+              </section>
+              <section className="panel">
                 <h2>Make a personal commitment</h2>
                 <p className="muted">
                   Choose a habit you want to build. Its schedule stays locked through its commitment
                   window.
                 </p>
-                <SimpleForm
-                  label="Create habit"
-                  className="inline-form"
-                  onSubmit={(data) => act({ ...data, action: 'commitment', subject: s.subject.id })}
-                >
-                  <label>
-                    Habit name
-                    <input
-                      name="name"
-                      required
-                      maxLength={100}
-                      placeholder="For example, a morning walk"
-                    />
-                  </label>
-                  <label>
-                    Frequency
-                    <select name="frequency">
-                      <option value="daily">Daily</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="monthly">Monthly</option>
-                    </select>
-                  </label>
-                  <label>
-                    Time
-                    <input type="time" name="time" />
-                  </label>
-                  <label>
-                    Minutes
-                    <input type="number" name="duration" min="1" max="1440" defaultValue={15} />
-                  </label>
-                  <label className="wide">
-                    Plan of action
-                    <input name="plan" placeholder="How will you make time for this?" />
-                  </label>
-                </SimpleForm>
+                <CommitmentForm subject={s.subject.id} act={act} />
               </section>
               <div className="section-heading">
                 <h2>Your committed habits</h2>
@@ -715,53 +749,7 @@ export default function Workspace() {
             </>
           )}
           {view === 'review' && (
-            <>
-              <div className="review-summary">
-                <span>
-                  <ShieldCheck /> {pending.length} entries awaiting your review
-                </span>
-                <p className="muted">Only entries within your assigned review scope appear.</p>
-              </div>
-              {pending.length ? (
-                <div className="record-list">
-                  {pending.map((l: any) => (
-                    <button className="record-row" key={l.id} onClick={() => setReviewing(l)}>
-                      <span className="avatar soft">{l.name[0]}</span>
-                      <div>
-                        <strong>{l.nickname || l.name}</strong>
-                        <small>
-                          {l.pcm} · {l.habit} · {l.period}
-                        </small>
-                      </div>
-                      <Badge status={l.status} />
-                      <ChevronRight size={18} />
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <Empty title="Your review queue is clear">
-                  New submissions in your assigned groups will appear here.
-                </Empty>
-              )}
-              {(u.roles.includes('pastor') || s.admin) && (
-                <section className="panel spaced">
-                  <h2>Weekly challenge question</h2>
-                  <p className="muted">
-                    Published for the current service week. Existing answers keep their original
-                    question.
-                  </p>
-                  <SimpleForm
-                    label="Publish question"
-                    onSubmit={(data) => act({ ...data, action: 'question' })}
-                  >
-                    <label>
-                      Challenge
-                      <textarea name="question" required defaultValue={s.question?.text || ''} />
-                    </label>
-                  </SimpleForm>
-                </section>
-              )}
-            </>
+            <ReviewDashboard state={s} date={activeDate} onReview={setReviewing} act={act} />
           )}
           {view === 'tithes' && (
             <>
@@ -825,7 +813,7 @@ export default function Workspace() {
                 <section className="panel">
                   <h2>StelliKids</h2>
                   <p className="muted">
-                    Children tagged StelliKids land directly on their SkidiGreet dashboard after
+                    Children tagged StelliKids land directly on their SkidiStat dashboard after
                     login. To help a child from your account, first record the guardian relationship
                     in StelliAd.
                   </p>
@@ -894,18 +882,7 @@ export default function Workspace() {
           )}
           {view === 'settings' && (
             <div className="settings-grid">
-              <section className="panel">
-                <h2>Your profile</h2>
-                <p className="muted">
-                  {u.name} · {u.pcm}
-                </p>
-                <SimpleForm onSubmit={(data) => act({ ...data, action: 'profile' })}>
-                  <label>
-                    Preferred nickname
-                    <input name="nickname" maxLength={50} defaultValue={u.nickname} />
-                  </label>
-                </SimpleForm>
-              </section>
+              <Profile state={s} act={act} />
               <section className="panel">
                 <h2>Make yourself comfortable</h2>
                 <p className="muted">Choose the appearance that works for you.</p>
@@ -920,6 +897,18 @@ export default function Workspace() {
                 </p>
               </section>
             </div>
+          )}
+          {view === 'admin' && !s.admin && (
+            <section className="panel">
+              <h2>Auditor workspace</h2>
+              <p className="muted">
+                Your access is limited to assigned financial review. Member and church
+                administration require Admin permission.
+              </p>
+              <button className="button primary" onClick={() => openModule('finance')}>
+                Open StelliTithes
+              </button>
+            </section>
           )}
           {view === 'admin' && s.admin && (
             <>
@@ -1432,6 +1421,15 @@ export default function Workspace() {
               )}
             </>
           )}
+          {['admin', 'care', 'share'].includes(moduleId) &&
+            view !== 'review' &&
+            u.roles.some((r: string) => ['admin', 'pastor', 'servant', 'captain'].includes(r)) && (
+              <UnlockQueue state={s} act={act} />
+            )}
+          {(['light', 'groups', 'review'].includes(view) ||
+            (['care', 'share'].includes(moduleId) && view === 'ministry')) && (
+            <NudgePanel state={s} act={act} />
+          )}
           <footer className="content-footer">
             <span>iStellify · Precious Church</span>
             <span>One small step. Every day.</span>
@@ -1452,18 +1450,35 @@ export default function Workspace() {
         name={s.subject.nickname || s.subject.name.split(' ')[0]}
         kids={kids}
         celebration={celebration}
+        completed={s.logs.some(
+          (l: any) => DAILY.includes(l.habit) && l.period === s.today && l.status !== 'draft',
+        )}
       />
-      {modal?.habit && (
-        <HabitForm
-          {...modal}
-          date={activeDate}
-          subject={s.subject.id}
-          question={s.question}
-          act={act}
-          onClose={() => setModal(null)}
-          onSaved={() => setModal(null)}
-        />
-      )}
+      {modal?.habit &&
+        (DAILY.includes(modal.habit) || s.commitments.some((c: any) => c.id === modal.habit)) && (
+          <WeeklyCard
+            {...modal}
+            date={activeDate}
+            state={s}
+            act={act}
+            onClose={() => setModal(null)}
+            onSaved={() => {}}
+          />
+        )}
+      {modal?.habit &&
+        !DAILY.includes(modal.habit) &&
+        !s.commitments.some((c: any) => c.id === modal.habit) && (
+          <HabitForm
+            {...modal}
+            date={activeDate}
+            subject={s.subject.id}
+            question={s.question}
+            state={s}
+            act={act}
+            onClose={() => setModal(null)}
+            onSaved={() => setModal(null)}
+          />
+        )}
       {reviewing && (
         <div className="modal-backdrop" onClick={() => setReviewing(null)}>
           <section
@@ -1488,7 +1503,27 @@ export default function Workspace() {
               </button>
             </header>
             <EntryDetails log={reviewing} />
-            {reviewing.status === 'pending' ? (
+            {reviewing.data.attachmentId && (
+              <a
+                href={'/api/attachments?id=' + reviewing.data.attachmentId + '&preview=true'}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <img
+                  style={{ maxWidth: 250, maxHeight: 220, objectFit: 'contain' }}
+                  src={'/api/attachments?id=' + reviewing.data.attachmentId + '&preview=true'}
+                  alt="Handwritten notes preview"
+                />
+              </a>
+            )}
+            {reviewing.status === 'pending' &&
+            (reviewOpen(
+              reviewing.habit,
+              reviewing.period,
+              new Date(),
+              reviewing.timezone || s.timezone,
+            ) ||
+              Date.parse(reviewing.grace_expires_at || '') > Date.now()) ? (
               <SimpleForm
                 label="Save review"
                 onSubmit={async (d) => {
@@ -1739,6 +1774,11 @@ function EntryDetails({ log }: { log: any }) {
             </div>
           ))}
         </div>
+      )}
+      {log.attachment_drive_url && (
+        <a className="text-button" href={log.attachment_drive_url} target="_blank" rel="noreferrer">
+          Open notes in church Google Drive
+        </a>
       )}
       {d.attachmentId && (
         <a className="button secondary" href={'/api/attachments?id=' + d.attachmentId}>

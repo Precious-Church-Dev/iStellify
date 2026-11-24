@@ -71,7 +71,7 @@ test('group scope and self-review are protected', () => {
   );
   assert.equal(
     canReview(member, scope, { member_id: 'two', habit: 'iRead', group_ids: ['care1'] }),
-    true,
+    false,
   );
   assert.equal(
     canReview(member, scope, { member_id: 'two', habit: 'iTithes', group_ids: ['care1'] }),

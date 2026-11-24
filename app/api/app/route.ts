@@ -1,3 +1,13 @@
+import { v21Action, v21State } from '@/lib/v21';
+import {
+  cardPeriod,
+  localClock,
+  submissionOpen,
+  reviewOpen,
+  fragments,
+  READ_TYPES,
+  scheduled,
+} from '@/lib/cards';
 import { query, transaction } from '@/lib/db.mjs';
 import {
   audit,
@@ -60,7 +70,10 @@ export async function GET(req: Request) {
       subject = await subjectFor(user, url.searchParams.get('subject') || user.id);
     const scope = await memberships(user.id),
       subjectScope = subject.id === user.id ? scope : await memberships(subject.id);
-    const today = churchDate(),
+    const memberTimezone =
+      (await run('SELECT timezone FROM members WHERE id=$1', [subject.id]))[0]?.timezone ||
+      'Asia/Manila';
+    const today = localClock(new Date(), memberTimezone).day,
       day = url.searchParams.get('date') || today;
     if (!validDay(day)) fail('Invalid date.');
     const own = await run(
@@ -68,14 +81,14 @@ export async function GET(req: Request) {
       [subject.id, day, weekStart(day), day.slice(0, 7)],
     );
     const all = await run(
-      `SELECT l.*,m.name,m.nickname,m.pcm FROM logs l JOIN members m ON m.id=l.member_id WHERE l.period IN ($1,$2,$3) AND l.status<>'draft' AND l.member_id<>$4 AND (l.group_ids && $5::text[] OR $6::boolean) ORDER BY l.updated_at DESC LIMIT 300`,
+      `SELECT l.*,m.name,m.nickname,m.pcm,m.timezone,(SELECT max(expires_at) FROM unlock_requests r WHERE r.member_id=l.member_id AND r.habit=l.habit AND r.period=l.period AND r.status='used' AND r.expires_at>now()) AS grace_expires_at,(SELECT a.drive_web_view_link FROM attachments a WHERE a.id=l.data->>'attachmentId' AND a.owner_id=l.member_id) AS attachment_drive_url FROM logs l JOIN members m ON m.id=l.member_id WHERE l.period IN ($1,$2,$3) AND l.status<>'draft' AND l.member_id<>$4 AND (l.group_ids && $5::text[] OR $6::boolean) ORDER BY l.updated_at DESC LIMIT 300`,
       [
         day,
         weekStart(day),
         day.slice(0, 7),
         user.id,
         scope.map((s) => s.group_id),
-        user.roles.includes('pastor'),
+        user.roles.some((r) => ['admin', 'pastor'].includes(r)),
       ],
     );
     const review = all
@@ -99,8 +112,13 @@ export async function GET(req: Request) {
       `SELECT DISTINCT m.id,m.name,m.nickname,m.pcm,g.id AS group_id,g.name AS group_name,g.kind,
  (SELECT count(*)::int FROM logs l WHERE l.member_id=m.id AND l.period=$2 AND l.status<>'draft' AND l.habit IN ('iRead','iPray')) AS daily_count
  FROM memberships mg JOIN memberships mine ON mine.group_id=mg.group_id JOIN members m ON m.id=mg.member_id JOIN groups g ON g.id=mg.group_id
- WHERE mine.member_id=$1 AND m.id<>$1 AND m.active=true AND m.tag<>'StelliKids' AND g.kind IN ('family','care','share') AND ($3::boolean=false OR g.kind='family') ORDER BY g.kind,m.name`,
-      [subject.id, day, subject.tag === 'StelliKids'],
+ WHERE (mine.member_id=$1 OR $4::boolean) AND m.id<>$1 AND m.active=true AND m.tag<>'StelliKids' AND g.kind IN ('family','care','share') AND ($3::boolean=false OR g.kind='family') ORDER BY g.kind,m.name`,
+      [
+        subject.id,
+        day,
+        subject.tag === 'StelliKids',
+        user.roles.some((r) => ['admin', 'pastor'].includes(r)),
+      ],
     );
     const notes = await run(
       'SELECT id,message,created_at,read_at FROM notifications WHERE recipient_id=$1 ORDER BY created_at DESC LIMIT 30',
@@ -115,8 +133,11 @@ export async function GET(req: Request) {
       [subject.id],
     );
     const question =
-      (await run('SELECT value FROM settings WHERE key=$1', ['question:' + weekStart(day)]))[0]
-        ?.value || null;
+      (
+        await run('SELECT value FROM settings WHERE key=$1', [
+          'question:' + cardPeriod('iSpeak', day),
+        ])
+      )[0]?.value || null;
     const admin = isAdmin(user)
       ? {
           members: await run(
@@ -132,12 +153,9 @@ export async function GET(req: Request) {
       : null;
     const finance = all.filter((l) => l.habit === 'iTithes' && canFinance(user, scope, l));
     return Response.json({
-      user,
       subject,
-      today,
       date: day,
       scope: subjectScope,
-      logs: own,
       review,
       peers,
       notifications: notes,
@@ -147,6 +165,7 @@ export async function GET(req: Request) {
       admin,
       finance,
       roleScope: scope,
+      ...(await v21State(user, scope, subject, day)),
       personalItems: await run(
         'SELECT id,kind,title,data,created_at,updated_at FROM personal_items WHERE member_id=$1 ORDER BY updated_at DESC LIMIT 200',
         [subject.id],
@@ -165,11 +184,17 @@ export async function POST(req: Request) {
       scope = await memberships(u.id),
       today = churchDate();
     const subject = await subjectFor(u, b.subject || u.id);
+    const result = await v21Action(b, u, scope, subject);
+    if (result) return result;
+    const zone =
+      (await run('SELECT timezone FROM members WHERE id=$1', [subject.id]))[0]?.timezone ||
+      'Asia/Manila';
+    const localToday = localClock(new Date(), zone).day;
     if (b.action === 'log') {
       const habit = String(b.habit),
-        day = String(b.date || today),
+        day = String(b.date || localToday),
         data = b.data || {};
-      if (!validDay(day) || day > today) fail('Choose today or an earlier date.');
+      if (!validDay(day) || day > localToday) fail('Choose today or an earlier date.');
       let frequency = DAILY.includes(habit)
         ? 'daily'
         : MONTHLY.includes(habit)
@@ -182,22 +207,25 @@ export async function POST(req: Request) {
         );
         if (!c.length) fail('Habit is unavailable.');
         frequency = c[0].frequency;
-        if (day < String(c[0].start_date).slice(0, 10)) fail('This habit had not started yet.');
+        if (!scheduled(day, frequency, c[0].schedule))
+          fail('This habit is not scheduled for this day or period.');
+        if (
+          day < String(c[0].start_date).slice(0, 10) &&
+          (frequency === 'daily' ||
+            cardPeriod(habit, day, frequency) !==
+              cardPeriod(habit, String(c[0].start_date).slice(0, 10), frequency))
+        )
+          fail('This habit had not started yet.');
       }
-      const period = periodFor(habit, day, frequency);
-      if (
-        (frequency === 'daily' && weekStart(day) !== weekStart(today)) ||
-        (frequency === 'weekly' && period !== weekStart(today)) ||
-        (frequency === 'monthly' && period !== today.slice(0, 7))
-      ) {
-        const exception = (
-          await run('SELECT value FROM settings WHERE key=$1', [
-            'unlock:' + subject.id + ':' + habit + ':' + period,
-          ])
-        )[0]?.value;
-        if (!exception || Date.parse(exception.expiresAt) < Date.now())
-          fail('This period is closed. Contact an administrator for help.');
-      }
+      const period = cardPeriod(habit, day, frequency);
+      const grace = (
+        await run(
+          "SELECT * FROM unlock_requests WHERE member_id=$1 AND habit=$2 AND period=$3 AND status='approved' AND expires_at>now()",
+          [subject.id, habit, period],
+        )
+      )[0];
+      if (!submissionOpen(habit, period, new Date(), zone, frequency) && !grace)
+        fail('This card is locked. Request an unlock to submit or correct a closed period.', 403);
       if (
         subject.tag === 'StelliKids' &&
         !['iRead', 'iPray', 'iPraise', 'iNote', 'iTithes'].includes(habit) &&
@@ -207,14 +235,18 @@ export async function POST(req: Request) {
       if (!b.draft) {
         if (
           habit === 'iRead' &&
-          (!data.type ||
+          (!(
+            READ_TYPES.includes(String(data.type)) ||
+            (Array.isArray(data.activities) &&
+              data.activities.some((t: string) => READ_TYPES.includes(t)))
+          ) ||
             !Number.isInteger(Number(data.duration)) ||
             Number(data.duration) < 1 ||
             Number(data.duration) > 1440)
         )
           fail('Choose a reading type and duration from 1 to 1440 minutes.');
-        if (habit === 'iPray' && !(data.morning && data.adhoc && data.evening))
-          fail('Complete morning, adhoc and evening prayer before submitting.');
+        if (habit === 'iPray' && ![data.morning, data.adhoc, data.evening].some((v) => v === true))
+          fail('Log at least one prayer activity before submitting.');
         if (habit === 'iPraise' && !['Online', 'Onsite', 'Absent'].includes(data.attendance))
           fail('Select your attendance.');
         if (
@@ -222,7 +254,12 @@ export async function POST(req: Request) {
           (!['Yes', 'No'].includes(data.attendance) || (data.attendance === 'No' && !data.reason))
         )
           fail('Select attendance and a reason when absent.');
-        if (habit === 'iNote' && !String(data.notes || '').trim() && !data.attachmentId)
+        if (
+          habit === 'iNote' &&
+          !String(data.notes || '').trim() &&
+          !data.attachmentId &&
+          !Object.entries(data).some(([k, v]) => /^bsf\d+$/.test(k) && String(v || '').trim())
+        )
           fail('Add notes or a handwritten notes attachment.');
         if (habit === 'iSpeak' && !String(data.answer || '').trim() && !data.attachmentId)
           fail('Add your answer or an attachment.');
@@ -268,6 +305,15 @@ export async function POST(req: Request) {
             : s.kind === 'care',
       );
       await transaction(async (db: any) => {
+        if (grace) {
+          const g = (
+            await db.query(
+              "SELECT id FROM unlock_requests WHERE id=$1 AND status='approved' AND expires_at>now() FOR UPDATE",
+              [grace.id],
+            )
+          ).rows[0];
+          if (!g) fail('This unlock has expired or was already used.', 409);
+        }
         if (data.attachmentId) {
           const a = await db.query('SELECT id FROM attachments WHERE id=$1 AND owner_id=$2', [
             data.attachmentId,
@@ -290,7 +336,16 @@ export async function POST(req: Request) {
           );
           await db.query(
             'UPDATE logs SET data=$1,status=$4,version=version+1,updated_at=now(),entered_by=$2 WHERE id=$3',
-            [JSON.stringify(data), u.id, id, b.draft ? 'draft' : 'pending'],
+            [
+              JSON.stringify(data),
+              u.id,
+              id,
+              b.draft
+                ? 'draft'
+                : DAILY.includes(habit) || !DAILY.concat(WEEKLY, MONTHLY).includes(habit)
+                  ? 'confirmed'
+                  : 'pending',
+            ],
           );
         } else
           await db.query(
@@ -303,9 +358,31 @@ export async function POST(req: Request) {
               period,
               JSON.stringify(data),
               groupsForHabit.map((s) => s.group_id),
-              b.draft ? 'draft' : 'pending',
+              b.draft
+                ? 'draft'
+                : DAILY.includes(habit) || !DAILY.concat(WEEKLY, MONTHLY).includes(habit)
+                  ? 'confirmed'
+                  : 'pending',
             ],
           );
+        if (!b.draft) {
+          const points = fragments(habit, data);
+          await db.query(
+            'INSERT INTO fragment_credits(log_id,member_id,points) VALUES($1,$2,$3) ON CONFLICT(log_id) DO UPDATE SET points=excluded.points',
+            [id, subject.id, points],
+          );
+          await db.query(
+            'UPDATE members SET stellar_fragments=(SELECT COALESCE(sum(points),0) FROM fragment_credits WHERE member_id=$1) WHERE id=$1',
+            [subject.id],
+          );
+          if (grace)
+            await db.query("UPDATE unlock_requests SET status='used' WHERE id=$1", [grace.id]);
+          if (submissionOpen(habit, period, new Date(), zone, frequency))
+            await db.query(
+              'UPDATE stellinudge_logs SET recipient_completed_after_nudge=true WHERE recipient_church_id=$1 AND stellicard_type=$2 AND period=$3 AND created_at<now()',
+              [subject.id, habit, period],
+            );
+        }
         if (data.attachmentId)
           await db.query('UPDATE attachments SET log_id=$1 WHERE id=$2', [id, data.attachmentId]);
         await audit(
@@ -320,7 +397,7 @@ export async function POST(req: Request) {
         ok: true,
         message: b.draft
           ? 'Draft saved. Return when you’re ready to complete it.'
-          : 'Saved. Your entry is awaiting verification.',
+          : 'Saved. Daily logs are auto-verified; weekly/monthly cards enter the review queue.',
       });
     }
     if (b.action === 'review') {
@@ -331,6 +408,18 @@ export async function POST(req: Request) {
         const r = await db.query('SELECT * FROM logs WHERE id=$1 FOR UPDATE', [b.id]);
         const log = r.rows[0];
         if (!log || !canReview(u, scope, log)) fail('You cannot review this entry.', 403);
+        const memberZone =
+          (await db.query('SELECT timezone FROM members WHERE id=$1', [log.member_id])).rows[0]
+            ?.timezone || 'Asia/Manila';
+        const graceReview =
+          (
+            await db.query(
+              "SELECT id FROM unlock_requests WHERE member_id=$1 AND habit=$2 AND period=$3 AND status='used' AND expires_at>now()",
+              [log.member_id, log.habit, log.period],
+            )
+          ).rows.length > 0;
+        if (!reviewOpen(log.habit, log.period, new Date(), memberZone) && !graceReview)
+          fail('This review window is closed. The record is read-only.', 403);
         if (log.version !== Number(b.version) || log.status !== 'pending')
           fail('This entry has already changed. Reload the queue.', 409);
         let received = null;
@@ -367,8 +456,21 @@ export async function POST(req: Request) {
       const duration = Number(b.duration);
       if (!Number.isInteger(duration) || duration < 1 || duration > 1440)
         fail('Duration must be 1 to 1440 minutes.');
+      const schedule = b.schedule || {};
+      if (
+        schedule.slots &&
+        (!Array.isArray(schedule.slots) ||
+          !schedule.slots.length ||
+          schedule.slots.some(
+            (n: unknown) =>
+              !Number.isInteger(n) ||
+              Number(n) < 0 ||
+              Number(n) > (b.frequency === 'daily' ? 6 : b.frequency === 'weekly' ? 4 : 2),
+          ))
+      )
+        fail('Choose a valid custom schedule.');
       await query(
-        'INSERT INTO commitments(id,member_id,habit,frequency,planned_time,duration,plan,start_date,lock_until) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+        'INSERT INTO commitments(id,member_id,habit,frequency,planned_time,duration,plan,start_date,lock_until,schedule) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
         [
           token(),
           subject.id,
@@ -379,6 +481,7 @@ export async function POST(req: Request) {
           String(b.plan || '').slice(0, 2000),
           today,
           lockEnd(today, b.frequency),
+          JSON.stringify(schedule),
         ],
       );
       return Response.json({

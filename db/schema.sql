@@ -35,3 +35,47 @@ CREATE TABLE IF NOT EXISTS ministry_items (
 CREATE INDEX IF NOT EXISTS ministry_scope ON ministry_items(module,group_id);
 CREATE INDEX IF NOT EXISTS personal_owner ON personal_items(member_id,kind);
 ALTER TABLE members ADD COLUMN IF NOT EXISTS password_change_required BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE members ADD COLUMN IF NOT EXISTS bio TEXT NOT NULL DEFAULT '';
+ALTER TABLE members ADD COLUMN IF NOT EXISTS phone TEXT NOT NULL DEFAULT '';
+ALTER TABLE members ADD COLUMN IF NOT EXISTS birthdate DATE;
+ALTER TABLE members ADD COLUMN IF NOT EXISTS timezone TEXT NOT NULL DEFAULT 'Asia/Manila';
+ALTER TABLE members ADD COLUMN IF NOT EXISTS google_sub TEXT;
+ALTER TABLE members ADD COLUMN IF NOT EXISTS avatar BYTEA;
+ALTER TABLE members ADD COLUMN IF NOT EXISTS stellar_fragments INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE commitments ADD COLUMN IF NOT EXISTS schedule JSONB NOT NULL DEFAULT '{}';
+CREATE UNIQUE INDEX IF NOT EXISTS member_google_sub ON members(google_sub) WHERE google_sub IS NOT NULL;
+CREATE TABLE IF NOT EXISTS unlock_requests (
+ id TEXT PRIMARY KEY, member_id TEXT NOT NULL REFERENCES members(id),habit TEXT NOT NULL,period TEXT NOT NULL,reason TEXT NOT NULL,
+ status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','declined','used')),reviewer_id TEXT REFERENCES members(id),
+ expires_at TIMESTAMPTZ,created_at TIMESTAMPTZ NOT NULL DEFAULT now(),reviewed_at TIMESTAMPTZ
+);
+CREATE UNIQUE INDEX IF NOT EXISTS unlock_pending ON unlock_requests(member_id,habit,period) WHERE status='pending';
+CREATE TABLE IF NOT EXISTS fragment_credits (log_id TEXT PRIMARY KEY REFERENCES logs(id),member_id TEXT NOT NULL REFERENCES members(id),points INTEGER NOT NULL CHECK(points>=0));
+CREATE TABLE IF NOT EXISTS coach_resources (
+ id TEXT PRIMARY KEY,section TEXT NOT NULL CHECK(section IN ('StelliApp','StelliLearn')),title TEXT NOT NULL,description TEXT NOT NULL DEFAULT '',
+ category TEXT NOT NULL DEFAULT '',video_url TEXT NOT NULL DEFAULT '',document_url TEXT NOT NULL DEFAULT '',cover_url TEXT NOT NULL DEFAULT '',
+ position INTEGER NOT NULL DEFAULT 0,archived BOOLEAN NOT NULL DEFAULT false,owner_id TEXT NOT NULL REFERENCES members(id),updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS church_events (
+ id SERIAL PRIMARY KEY,name TEXT NOT NULL,starts_at TIMESTAMPTZ NOT NULL,details TEXT NOT NULL DEFAULT '',media_url TEXT NOT NULL DEFAULT '',
+ images JSONB NOT NULL DEFAULT '[]',owner_id TEXT NOT NULL REFERENCES members(id),updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE coach_resources ADD COLUMN IF NOT EXISTS cover_body BYTEA;
+ALTER TABLE coach_resources ADD COLUMN IF NOT EXISTS cover_mime TEXT;
+CREATE TABLE IF NOT EXISTS event_images (id TEXT PRIMARY KEY,event_id INTEGER REFERENCES church_events(id) ON DELETE CASCADE,body BYTEA NOT NULL,mime TEXT NOT NULL,owner_id TEXT NOT NULL REFERENCES members(id));
+CREATE TABLE IF NOT EXISTS church_event_requests (id TEXT PRIMARY KEY,member_id TEXT NOT NULL REFERENCES members(id),name TEXT NOT NULL,starts_at TIMESTAMPTZ NOT NULL,details TEXT NOT NULL DEFAULT '',status TEXT NOT NULL DEFAULT 'pending',created_at TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS password_resets (token_hash TEXT PRIMARY KEY,member_id TEXT NOT NULL REFERENCES members(id),expires_at TIMESTAMPTZ NOT NULL,used_at TIMESTAMPTZ);
+CREATE TABLE IF NOT EXISTS baptism_records (id TEXT PRIMARY KEY,member_id TEXT NOT NULL UNIQUE REFERENCES members(id),baptism_date DATE NOT NULL,location TEXT NOT NULL,minister TEXT NOT NULL,certificate_url TEXT NOT NULL DEFAULT '',photos JSONB NOT NULL DEFAULT '[]',recorded_by TEXT NOT NULL REFERENCES members(id),updated_at TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS stellinudge_logs (
+ nudge_id TEXT PRIMARY KEY,sender_church_id TEXT NOT NULL REFERENCES members(id),recipient_church_id TEXT NOT NULL REFERENCES members(id),
+ group_context TEXT NOT NULL,group_id TEXT NOT NULL REFERENCES groups(id),stellicard_type TEXT NOT NULL,period TEXT NOT NULL,message TEXT NOT NULL,
+ recipient_completed_after_nudge BOOLEAN NOT NULL DEFAULT false,created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+ UNIQUE(sender_church_id,recipient_church_id,stellicard_type,period)
+);
+ALTER TABLE attachments ADD COLUMN IF NOT EXISTS drive_file_id TEXT;
+ALTER TABLE attachments ADD COLUMN IF NOT EXISTS drive_web_view_link TEXT;
+ALTER TABLE attachments ADD COLUMN IF NOT EXISTS drive_file_name TEXT;
+CREATE TABLE IF NOT EXISTS pastoral_requests (
+ id TEXT PRIMARY KEY,member_id TEXT NOT NULL REFERENCES members(id),period TEXT NOT NULL,kind TEXT NOT NULL CHECK(kind IN ('prayer','counsel','review')),
+ recipient_id TEXT REFERENCES members(id),data JSONB NOT NULL DEFAULT '{}',status TEXT NOT NULL DEFAULT 'open',created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

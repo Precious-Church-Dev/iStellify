@@ -332,7 +332,7 @@ export default function PersonalSections({
     return (
       <>
         <section className="panel">
-          <h2>{kids ? 'SkidiGoal' : 'StelliGoal'}</h2>
+          <h2>{kids ? 'SkidiGoal' : 'StelliBase'}</h2>
           <p className="muted">Give your goal a name, a target and a date.</p>
           {feedback}
           <form className="inline-form" onSubmit={(e) => save(e, 'goal')}>

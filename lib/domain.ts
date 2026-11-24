@@ -72,9 +72,20 @@ export function canReview(
   log: { member_id: string; habit: string; group_ids: string[] },
 ) {
   if (user.id === log.member_id || !DAILY.concat(WEEKLY, MONTHLY).includes(log.habit)) return false;
-  if (user.roles.includes('pastor')) return true;
+  if (DAILY.includes(log.habit)) return false;
+  if (
+    log.habit === 'iTithes' &&
+    !user.roles.some((r) => ['admin', 'auditor'].includes(r)) &&
+    !scope.some((s) => s.roles.includes('auditor') && log.group_ids.includes(s.group_id))
+  )
+    return false;
+  if (user.roles.includes('admin') || user.roles.includes('pastor')) return true;
   const roles =
-    log.habit === 'iTithes' ? ['auditor'] : log.habit === 'iShare' ? ['captain'] : ['servant'];
+    log.habit === 'iTithes'
+      ? ['auditor']
+      : log.habit === 'iShare'
+        ? ['captain']
+        : ['servant', 'captain'];
   return scope.some(
     (s) => log.group_ids.includes(s.group_id) && s.roles.some((r) => roles.includes(r)),
   );
@@ -86,7 +97,7 @@ export function canFinance(
 ) {
   return (
     user.id === log.member_id ||
-    user.roles.includes('pastor') ||
+    user.roles.includes('admin') ||
     scope.some((s) => s.roles.includes('auditor') && log.group_ids.includes(s.group_id))
   );
 }
