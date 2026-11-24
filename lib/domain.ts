@@ -73,10 +73,19 @@ export function canReview(
 ) {
   if (user.id === log.member_id || !DAILY.concat(WEEKLY, MONTHLY).includes(log.habit)) return false;
   if (DAILY.includes(log.habit)) return false;
-  if (log.habit === 'iTithes' && !user.roles.some(r=>['admin','auditor'].includes(r)) && !scope.some(s=>s.roles.includes('auditor')&&log.group_ids.includes(s.group_id))) return false;
+  if (
+    log.habit === 'iTithes' &&
+    !user.roles.some((r) => ['admin', 'auditor'].includes(r)) &&
+    !scope.some((s) => s.roles.includes('auditor') && log.group_ids.includes(s.group_id))
+  )
+    return false;
   if (user.roles.includes('admin') || user.roles.includes('pastor')) return true;
   const roles =
-    log.habit === 'iTithes' ? ['auditor'] : log.habit === 'iShare' ? ['captain'] : ['servant','captain'];
+    log.habit === 'iTithes'
+      ? ['auditor']
+      : log.habit === 'iShare'
+        ? ['captain']
+        : ['servant', 'captain'];
   return scope.some(
     (s) => log.group_ids.includes(s.group_id) && s.roles.some((r) => roles.includes(r)),
   );

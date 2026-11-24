@@ -14,7 +14,7 @@ export default function StelliCompanion({
   name: string;
   kids: boolean;
   celebration: number;
-  completed:boolean;
+  completed: boolean;
 }) {
   const [open, setOpen] = useState(false),
     [face, setFace] = useState<Face>('smile'),
@@ -96,7 +96,7 @@ export default function StelliCompanion({
         onClick={greet}
         aria-label={open ? 'Replay Stelli greeting' : 'Open Stelli greeting'}
       >
-        <Mascot completed={completed}/>
+        <Mascot completed={completed} />
         {open && (
           <span className={'stelli-screen face-' + face} aria-hidden="true">
             {face === 'welcome' ? (

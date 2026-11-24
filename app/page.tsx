@@ -4,10 +4,14 @@ import Login from '@/components/Login';
 import Workspace from '@/components/Workspace';
 import ChangeTemporaryPassword from '@/components/ChangeTemporaryPassword';
 export const dynamic = 'force-dynamic';
-export default async function Page({searchParams}:{searchParams:Promise<{reset?:string}>}) {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ reset?: string }>;
+}) {
   try {
-    const params=await searchParams;
-    if(params.reset)return <Login needsSetup={false}/>;
+    const params = await searchParams;
+    if (params.reset) return <Login needsSetup={false} />;
     const user = await currentUser();
     if (user?.password_change_required) return <ChangeTemporaryPassword pcm={user.pcm} />;
     if (user) return <Workspace />;

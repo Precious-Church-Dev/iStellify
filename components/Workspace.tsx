@@ -3,8 +3,8 @@ import WeeklyCard from './WeeklyCard';
 import Profile from './Profile';
 import CommitmentForm from './CommitmentForm';
 import Baptism from './Baptism';
-import {Coach, ChurchCalendar, ReviewDashboard, UnlockQueue, NudgePanel} from './Updates';
-import {LIFE_CARDS, cardPeriod, reviewOpen} from '@/lib/cards';
+import { Coach, ChurchCalendar, ReviewDashboard, UnlockQueue, NudgePanel } from './Updates';
+import { LIFE_CARDS, cardPeriod, reviewOpen } from '@/lib/cards';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
@@ -304,7 +304,9 @@ export default function Workspace() {
             ? l.habit === 'iTithes'
             : true),
   );
-  const navigation = MODULES.filter(m=>!['finance','admin'].includes(m.id)||moduleAllowed(m.id,u,s.children.length)).map((m) => [
+  const navigation = MODULES.filter(
+    (m) => !['finance', 'admin'].includes(m.id) || moduleAllowed(m.id, u, s.children.length),
+  ).map((m) => [
     m.id,
     m.label,
     (
@@ -345,7 +347,9 @@ export default function Workspace() {
             ? 'tithes'
             : id === 'settings'
               ? 'settings'
-              : id === 'coach' ? 'coach' : 'admin',
+              : id === 'coach'
+                ? 'coach'
+                : 'admin',
     );
   }
   const sectionName =
@@ -478,7 +482,17 @@ export default function Workspace() {
               <Bell size={19} />
               {s.notifications.some((n: any) => !n.read_at) && <i />}
             </button>
-            <div className="avatar"><img src={s.profile.has_avatar?'/api/media?kind=avatar&v='+s.serverNow:'/assets/mascot/stelli_happy.png'} alt="Your profile" style={{width:'100%',height:'100%',borderRadius:'50%',objectFit:'cover'}}/></div>
+            <div className="avatar">
+              <img
+                src={
+                  s.profile.has_avatar
+                    ? '/api/media?kind=avatar&v=' + s.serverNow
+                    : '/assets/mascot/stelli_happy.png'
+                }
+                alt="Your profile"
+                style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+              />
+            </div>
           </div>
         </header>
         <main className="content">
@@ -538,11 +552,28 @@ export default function Workspace() {
               ))}
             </nav>
           )}
-          {coreModule && view === 'home' && (<><MemberOverview state={s} onOpen={go} onHabit={openHabit} /><PersonalSections view="stat" state={s} date={activeDate} onRefresh={refresh} onWeeklyRate={()=>openHabit('iRate')} /></>)}
-          {view==='lot' && <section className="panel"><span className="eyebrow">STELLILOT</span><h2>Latest of Today</h2><p className="muted">Coming in 2028.</p></section>}
-          {view==='cleanse' && <Baptism state={s} act={act}/>}
-          {moduleId==='coach' && view==='coach' && <Coach state={s} act={act}/>}
-          {moduleId==='church' && view==='ministry' && <ChurchCalendar state={s} act={act}/>}
+          {coreModule && view === 'home' && (
+            <>
+              <MemberOverview state={s} onOpen={go} onHabit={openHabit} />
+              <PersonalSections
+                view="stat"
+                state={s}
+                date={activeDate}
+                onRefresh={refresh}
+                onWeeklyRate={() => openHabit('iRate')}
+              />
+            </>
+          )}
+          {view === 'lot' && (
+            <section className="panel">
+              <span className="eyebrow">STELLILOT</span>
+              <h2>Latest of Today</h2>
+              <p className="muted">Coming in 2028.</p>
+            </section>
+          )}
+          {view === 'cleanse' && <Baptism state={s} act={act} />}
+          {moduleId === 'coach' && view === 'coach' && <Coach state={s} act={act} />}
+          {moduleId === 'church' && view === 'ministry' && <ChurchCalendar state={s} act={act} />}
           {coreModule && ['stat', 'goals', 'rate', 'save', 'best'].includes(view) && (
             <PersonalSections
               view={view}
@@ -621,14 +652,41 @@ export default function Workspace() {
           )}
           {view === 'life' && (
             <>
-              <section className="panel"><h2>StelliLife card library</h2><p className="muted">Choose a card to add to your personal habits.</p><div className="life-library">{LIFE_CARDS.map(([name,description])=><button key={name} className="life-preset" onClick={()=>{const plan=description||prompt('Describe your '+name+' habit (optional)')||'';act({action:'adoptLifeCard',habit:name,plan,subject:s.subject.id}).catch(e=>setToast(e.message))}}><strong>{name}</strong><small>{description||'Personalize your plan'}</small><Plus size={14}/></button>)}</div></section>
+              <section className="panel">
+                <h2>StelliLife card library</h2>
+                <p className="muted">Choose a card to add to your personal habits.</p>
+                <div className="life-library">
+                  {LIFE_CARDS.map(([name, description]) => (
+                    <button
+                      key={name}
+                      className="life-preset"
+                      onClick={() => {
+                        const plan =
+                          description ||
+                          prompt('Describe your ' + name + ' habit (optional)') ||
+                          '';
+                        act({
+                          action: 'adoptLifeCard',
+                          habit: name,
+                          plan,
+                          subject: s.subject.id,
+                        }).catch((e) => setToast(e.message));
+                      }}
+                    >
+                      <strong>{name}</strong>
+                      <small>{description || 'Personalize your plan'}</small>
+                      <Plus size={14} />
+                    </button>
+                  ))}
+                </div>
+              </section>
               <section className="panel">
                 <h2>Make a personal commitment</h2>
                 <p className="muted">
                   Choose a habit you want to build. Its schedule stays locked through its commitment
                   window.
                 </p>
-                <CommitmentForm subject={s.subject.id} act={act}/>
+                <CommitmentForm subject={s.subject.id} act={act} />
               </section>
               <div className="section-heading">
                 <h2>Your committed habits</h2>
@@ -690,7 +748,9 @@ export default function Workspace() {
               </p>
             </>
           )}
-          {view === 'review' && <ReviewDashboard state={s} date={activeDate} onReview={setReviewing} act={act}/>}
+          {view === 'review' && (
+            <ReviewDashboard state={s} date={activeDate} onReview={setReviewing} act={act} />
+          )}
           {view === 'tithes' && (
             <>
               <section className="finance-intro">
@@ -822,7 +882,7 @@ export default function Workspace() {
           )}
           {view === 'settings' && (
             <div className="settings-grid">
-              <Profile state={s} act={act}/>
+              <Profile state={s} act={act} />
               <section className="panel">
                 <h2>Make yourself comfortable</h2>
                 <p className="muted">Choose the appearance that works for you.</p>
@@ -838,7 +898,18 @@ export default function Workspace() {
               </section>
             </div>
           )}
-          {view==='admin'&&!s.admin&&<section className="panel"><h2>Auditor workspace</h2><p className="muted">Your access is limited to assigned financial review. Member and church administration require Admin permission.</p><button className="button primary" onClick={()=>openModule('finance')}>Open StelliTithes</button></section>}
+          {view === 'admin' && !s.admin && (
+            <section className="panel">
+              <h2>Auditor workspace</h2>
+              <p className="muted">
+                Your access is limited to assigned financial review. Member and church
+                administration require Admin permission.
+              </p>
+              <button className="button primary" onClick={() => openModule('finance')}>
+                Open StelliTithes
+              </button>
+            </section>
+          )}
           {view === 'admin' && s.admin && (
             <>
               <div className="tabs">
@@ -1350,8 +1421,15 @@ export default function Workspace() {
               )}
             </>
           )}
-          {['admin','care','share'].includes(moduleId)&&view!=='review'&&(u.roles.some((r:string)=>['admin','pastor','servant','captain'].includes(r)))&&<UnlockQueue state={s} act={act}/>}
-          {(['light','groups','review'].includes(view)||(['care','share'].includes(moduleId)&&view==='ministry'))&&<NudgePanel state={s} act={act}/>}
+          {['admin', 'care', 'share'].includes(moduleId) &&
+            view !== 'review' &&
+            u.roles.some((r: string) => ['admin', 'pastor', 'servant', 'captain'].includes(r)) && (
+              <UnlockQueue state={s} act={act} />
+            )}
+          {(['light', 'groups', 'review'].includes(view) ||
+            (['care', 'share'].includes(moduleId) && view === 'ministry')) && (
+            <NudgePanel state={s} act={act} />
+          )}
           <footer className="content-footer">
             <span>iStellify · Precious Church</span>
             <span>One small step. Every day.</span>
@@ -1372,21 +1450,35 @@ export default function Workspace() {
         name={s.subject.nickname || s.subject.name.split(' ')[0]}
         kids={kids}
         celebration={celebration}
-        completed={s.logs.some((l:any)=>DAILY.includes(l.habit)&&l.period===s.today&&l.status!=='draft')}
+        completed={s.logs.some(
+          (l: any) => DAILY.includes(l.habit) && l.period === s.today && l.status !== 'draft',
+        )}
       />
-      {modal?.habit && (DAILY.includes(modal.habit)||s.commitments.some((c:any)=>c.id===modal.habit)) && <WeeklyCard {...modal} date={activeDate} state={s} act={act} onClose={()=>setModal(null)} onSaved={()=>{}}/>}
-      {modal?.habit && !DAILY.includes(modal.habit)&&!s.commitments.some((c:any)=>c.id===modal.habit) && (
-        <HabitForm
-          {...modal}
-          date={activeDate}
-          subject={s.subject.id}
-          question={s.question}
-          state={s}
-          act={act}
-          onClose={() => setModal(null)}
-          onSaved={() => setModal(null)}
-        />
-      )}
+      {modal?.habit &&
+        (DAILY.includes(modal.habit) || s.commitments.some((c: any) => c.id === modal.habit)) && (
+          <WeeklyCard
+            {...modal}
+            date={activeDate}
+            state={s}
+            act={act}
+            onClose={() => setModal(null)}
+            onSaved={() => {}}
+          />
+        )}
+      {modal?.habit &&
+        !DAILY.includes(modal.habit) &&
+        !s.commitments.some((c: any) => c.id === modal.habit) && (
+          <HabitForm
+            {...modal}
+            date={activeDate}
+            subject={s.subject.id}
+            question={s.question}
+            state={s}
+            act={act}
+            onClose={() => setModal(null)}
+            onSaved={() => setModal(null)}
+          />
+        )}
       {reviewing && (
         <div className="modal-backdrop" onClick={() => setReviewing(null)}>
           <section
@@ -1411,8 +1503,27 @@ export default function Workspace() {
               </button>
             </header>
             <EntryDetails log={reviewing} />
-            {reviewing.data.attachmentId&&<a href={'/api/attachments?id='+reviewing.data.attachmentId+'&preview=true'} target="_blank" rel="noreferrer"><img style={{maxWidth:250,maxHeight:220,objectFit:'contain'}} src={'/api/attachments?id='+reviewing.data.attachmentId+'&preview=true'} alt="Handwritten notes preview"/></a>}
-            {reviewing.status === 'pending' && (reviewOpen(reviewing.habit,reviewing.period,new Date(),reviewing.timezone||s.timezone)||Date.parse(reviewing.grace_expires_at||'')>Date.now()) ? (
+            {reviewing.data.attachmentId && (
+              <a
+                href={'/api/attachments?id=' + reviewing.data.attachmentId + '&preview=true'}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <img
+                  style={{ maxWidth: 250, maxHeight: 220, objectFit: 'contain' }}
+                  src={'/api/attachments?id=' + reviewing.data.attachmentId + '&preview=true'}
+                  alt="Handwritten notes preview"
+                />
+              </a>
+            )}
+            {reviewing.status === 'pending' &&
+            (reviewOpen(
+              reviewing.habit,
+              reviewing.period,
+              new Date(),
+              reviewing.timezone || s.timezone,
+            ) ||
+              Date.parse(reviewing.grace_expires_at || '') > Date.now()) ? (
               <SimpleForm
                 label="Save review"
                 onSubmit={async (d) => {
@@ -1664,7 +1775,11 @@ function EntryDetails({ log }: { log: any }) {
           ))}
         </div>
       )}
-      {log.attachment_drive_url&&<a className="text-button" href={log.attachment_drive_url} target="_blank" rel="noreferrer">Open notes in church Google Drive</a>}
+      {log.attachment_drive_url && (
+        <a className="text-button" href={log.attachment_drive_url} target="_blank" rel="noreferrer">
+          Open notes in church Google Drive
+        </a>
+      )}
       {d.attachmentId && (
         <a className="button secondary" href={'/api/attachments?id=' + d.attachmentId}>
           <Download size={17} />

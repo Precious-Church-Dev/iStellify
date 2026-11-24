@@ -1,4 +1,4 @@
-import {recoveryAction} from '@/lib/account-recovery';
+import { recoveryAction } from '@/lib/account-recovery';
 import { cookies } from 'next/headers';
 import { query, transaction } from '@/lib/db.mjs';
 import {
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     const data = await req.json();
     const action = data.action;
     const recovery = await recoveryAction(data);
-    if(recovery) return recovery;
+    if (recovery) return recovery;
     if (action === 'logout') {
       const c = await cookies();
       const v = c.get('istelli_session')?.value;

@@ -52,7 +52,13 @@ test('leader sections never become ordinary group content', () => {
   );
 });
 
-test('privileged modules are hidden from members and Pastor without a financial role',()=>{
- for(const id of ['finance','admin'] as const){assert.equal(moduleAllowed(id,member,0),false);assert.equal(moduleAllowed(id,{...member,roles:['pastor']},0),false);assert.equal(moduleAllowed(id,{...member,roles:['auditor']},0),true)}
- assert.equal(memberSections(false)[0].label,'StelliStat');assert.ok(!memberSections(false).some(s=>s.label==='StelliGreet'));assert.ok(memberSections(false).some(s=>s.label==='StelliLOT'));
+test('privileged modules are hidden from members and Pastor without a financial role', () => {
+  for (const id of ['finance', 'admin'] as const) {
+    assert.equal(moduleAllowed(id, member, 0), false);
+    assert.equal(moduleAllowed(id, { ...member, roles: ['pastor'] }, 0), false);
+    assert.equal(moduleAllowed(id, { ...member, roles: ['auditor'] }, 0), true);
+  }
+  assert.equal(memberSections(false)[0].label, 'StelliStat');
+  assert.ok(!memberSections(false).some((s) => s.label === 'StelliGreet'));
+  assert.ok(memberSections(false).some((s) => s.label === 'StelliLOT'));
 });

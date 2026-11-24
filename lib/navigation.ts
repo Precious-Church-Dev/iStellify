@@ -36,7 +36,8 @@ export function moduleAllowed(
   user: { tag: string; roles: string[] },
   children: number,
 ) {
-  if (id === 'admin' || id === 'finance') return user.roles.some(r => ['admin','auditor'].includes(r));
+  if (id === 'admin' || id === 'finance')
+    return user.roles.some((r) => ['admin', 'auditor'].includes(r));
   if (id === 'individual') return user.tag !== 'StelliKids';
   if (id === 'kids')
     return user.tag === 'StelliKids' || children > 0 || user.roles.includes('admin');

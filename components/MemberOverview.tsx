@@ -48,7 +48,7 @@ export default function MemberOverview({
     <div className={'member-overview ' + (kids ? 'kids-overview' : '')}>
       <section className="greet-panel">
         <div className="greet-character">
-          <Mascot completed={daily>0}/>
+          <Mascot completed={daily > 0} />
           <span>{prefix}Stat</span>
         </div>
         <div className="greet-message">
@@ -93,8 +93,15 @@ export default function MemberOverview({
           ))}
         </div>
       </section>
-      <div className="fragment-banner">✦ {s.profile.stellar_fragments} Stellar Fragments earned</div>
-      {s.badges.map((b:any)=><div className="fragment-banner" key={b.year}>🏅 Brother’s Keeper · {b.year}<strong>{b.score} impact points</strong></div>)}
+      <div className="fragment-banner">
+        ✦ {s.profile.stellar_fragments} Stellar Fragments earned
+      </div>
+      {s.badges.map((b: any) => (
+        <div className="fragment-banner" key={b.year}>
+          🏅 Brother’s Keeper · {b.year}
+          <strong>{b.score} impact points</strong>
+        </div>
+      ))}
       <div className="overview-scorebar">
         <div>
           <Sun size={19} />
