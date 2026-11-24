@@ -2863,7 +2863,7 @@ td .text-button {
 }
 .stelli-speech {
   position: absolute;
-  bottom: calc(100% - 52px);
+  bottom: calc(100% + 8px);
   left: -44px;
   width: 350px;
   border: 1px solid #e2cca1;

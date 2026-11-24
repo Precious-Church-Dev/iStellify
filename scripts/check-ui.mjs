@@ -19,6 +19,12 @@ try {
   await page.locator('input[name=password]').fill(process.env.DEMO_PASSWORD);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await page.getByRole('heading', { name: 'StelliStat', exact: true, level: 1 }).waitFor();
+  await page.getByRole('button', { name: 'Dismiss Stelli greeting' }).waitFor();
+  assert.equal(await page.locator('.stelli-screen').count(), 0);
+  assert.ok((await page.locator('.stelli-character .mood-mascot img').getAttribute('src')).startsWith('/assets/mascot/stelli_'));
+  await page.waitForFunction(() => { const el = document.querySelector('.stelli-companion'); return el && Math.abs(el.getBoundingClientRect().width - 350) < 1; });
+  assert.ok(await page.evaluate(() => document.querySelector('.stelli-speech').getBoundingClientRect().bottom <= document.querySelector('.stelli-character').getBoundingClientRect().top));
+  await shot('greeting');
   await page
     .getByRole('button', { name: 'Dismiss Stelli greeting' })
     .click()
