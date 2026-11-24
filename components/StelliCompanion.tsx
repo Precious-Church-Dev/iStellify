@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Mascot from './Mascot';
 import { X, Sparkles } from 'lucide-react';
-type Face = 'smile' | 'welcome' | 'wave' | 'cheer';
+type Face = 'smile' | 'cheer';
 export default function StelliCompanion({
   memberId,
   name,
@@ -32,11 +32,7 @@ export default function StelliCompanion({
     setMessage(`Hi, ${name}! Welcome to ${kids ? 'StelliKids' : 'iStellify'}.`);
     setFace('smile');
     setOpen(true);
-    timers.current.push(
-      setTimeout(() => setFace('welcome'), 1400),
-      setTimeout(() => setFace('wave'), 3900),
-      setTimeout(() => setOpen(false), 8500),
-    );
+    timers.current.push(setTimeout(() => setOpen(false), 8500));
   }
   useEffect(() => {
     setMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -97,26 +93,6 @@ export default function StelliCompanion({
         aria-label={open ? 'Replay Stelli greeting' : 'Open Stelli greeting'}
       >
         <Mascot completed={completed} />
-        {open && (
-          <span className={'stelli-screen face-' + face} aria-hidden="true">
-            {face === 'welcome' ? (
-              <span className="screen-word">WELCOME</span>
-            ) : face === 'cheer' ? (
-              <span className="screen-word">
-                GOOD
-                <br />
-                JOB!
-              </span>
-            ) : (
-              <svg viewBox="0 0 120 74">
-                <path className="bot-eyes" d="M18 28 Q29 9 40 28 M80 28 Q91 9 102 28" />
-                <path className="bot-smile" d="M44 48 Q60 64 77 48" />
-                <circle cx="17" cy="44" r="3" />
-                <circle cx="104" cy="44" r="3" />
-              </svg>
-            )}
-          </span>
-        )}
       </button>
       {!open && (
         <span className="stelli-dock-label">

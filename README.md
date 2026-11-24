@@ -10,7 +10,7 @@ The main sidebar contains iStellify, StelliKids, StelliCare, StelliShare, Stelli
 
 StelliSave records the date and account of salvation, understanding, confirmation and supporting references. StelliB.E.S.T. records Before, Event that Led, Salvation Day and Today. Both are private by default; a member can deliberately publish a B.E.S.T. testimony to their Care Group or church and withdraw it later. Salvation entries do not automatically change a spiritual state. Administrators assign the source-defined SBG/sP2S/P2S/AOS state explicitly.
 
-Stelli uses the original supplied PNG, pops out after sign-in, smiles, changes the monitor to WELCOME, greets the member and returns to the dock. The greeting can be replayed or dismissed and honors reduced-motion preferences. The original logo and character artwork are unchanged; monitor expressions are a UI overlay.
+Stelli uses the official supplied mood artwork, pops out after sign-in, greets the member in a speech bubble and returns to the dock. The greeting can be replayed or dismissed and honors reduced-motion preferences. The original face remains part of the artwork; no separate monitor overlay covers or replaces it.
 
 Care and Share provide scoped session records, leader-published icebreakers/strategies, assignments, a name picker, prayers, voluntarily shared testimonies and leader task boards. Church provides member content, slides links, dates, prayers, private counsel/help requests, leadership goals/tasks and aggregate activity counts. Personal goals and private dated health/growth checkpoints persist in the database. Statistics support date ranges and an owner-only CSV report. These are pilot workflows; they do not imply every advanced feature in the full PRD is complete.
 
