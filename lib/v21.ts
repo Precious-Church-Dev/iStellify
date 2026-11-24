@@ -5,13 +5,14 @@ import { DAILY, WEEKLY, MONTHLY, validDay } from './domain';
 
 const allHabits=[...DAILY,...WEEKLY,...MONTHLY];
 const rows=async(sql:string,p:unknown[]=[]) => (await query(sql,p)).rows as any[];
-const deny=(s:string,status=400):never=>{throw new HttpError(status,s)};
+function deny(s:string,status=400):never{throw new HttpError(status,s)}
 export async function v21State(u:any,scope:any[],subject:any,day:string) {
   const profile=(await rows('SELECT name,nickname,email,bio,phone,birthdate::text,timezone,google_sub IS NOT NULL AS google_linked,avatar IS NOT NULL AS has_avatar,stellar_fragments FROM members WHERE id=$1',[u.id]))[0];
   const zone=(await rows('SELECT timezone FROM members WHERE id=$1',[subject.id]))[0]?.timezone||'Asia/Manila';
   const clock=localClock(new Date(),zone);
   const d=new Date(day+'T12:00:00Z'),sun=new Date(d);sun.setUTCDate(d.getUTCDate()-d.getUTCDay());const end=new Date(sun);end.setUTCDate(end.getUTCDate()+7);
-  const logs=await rows('SELECT * FROM logs WHERE member_id=$1 AND ((length(period)=10 AND period>=$2 AND period<=$3) OR period=$4) ORDER BY updated_at DESC',[subject.id,sun.toISOString().slice(0,10),end.toISOString().slice(0,10),day.slice(0,7)]);
+  const quarter=Math.floor(d.getUTCMonth()/3)*3;const from=day.slice(0,4)+'-'+String(quarter+1).padStart(2,'0');const until=new Date(Date.UTC(d.getUTCFullYear(),quarter+3,0,12)).toISOString().slice(0,10);
+  const logs=await rows('SELECT * FROM logs WHERE member_id=$1 AND period>=$2 AND period<=$3 ORDER BY updated_at DESC',[subject.id,from,until]);
   const candidates=await rows(`SELECT r.*,m.name,m.pcm FROM unlock_requests r JOIN members m ON m.id=r.member_id WHERE r.member_id=$1 OR $2::boolean OR EXISTS(SELECT 1 FROM memberships a JOIN memberships t ON t.group_id=a.group_id WHERE a.member_id=$1 AND t.member_id=r.member_id AND a.roles && ARRAY['servant','captain']::text[]) ORDER BY r.created_at DESC LIMIT 200`,[u.id,u.roles.some((r:string)=>['admin','pastor'].includes(r))]);
   const unlocks=candidates.map(r=>({...r,can_review:r.member_id!==u.id&&(u.roles.some((x:string)=>['admin','pastor'].includes(x))||scope.some(g=>g.roles.some((x:string)=>['servant','captain'].includes(x))))}));
   const leaders=await rows(`SELECT DISTINCT m.id,m.name,m.pcm,m.roles FROM members m WHERE m.active=true AND ('pastor'=ANY(m.roles) OR EXISTS(SELECT 1 FROM memberships lead JOIN memberships mine ON mine.group_id=lead.group_id WHERE lead.member_id=m.id AND mine.member_id=$1 AND lead.roles && ARRAY['servant','captain']::text[]))`,[u.id]);
@@ -40,6 +41,13 @@ export function mediaUrl(value:unknown,document=false) {
 export async function v21Action(b:any,u:any,scope:any[],subject:any):Promise<Response|null> {
   const zone=(await rows('SELECT timezone FROM members WHERE id=$1',[subject.id]))[0]?.timezone||'Asia/Manila';
   const today=localClock(new Date(),zone).day;
+  if(b.action==='unlockPeriod'){
+    if(!u.roles.includes('admin'))deny('Administrator access required.',403);
+    if(!validDay(String(b.date))||b.date>today||!allHabits.includes(b.habit)||!String(b.reason||'').trim())deny('Choose a past/current date, StelliCard and exception reason.');
+    const period=cardPeriod(b.habit,b.date);
+    await transaction(async(db:any)=>{await db.query("UPDATE unlock_requests SET status='declined',reviewer_id=$1,reviewed_at=now() WHERE member_id=$2 AND habit=$3 AND period=$4 AND status='pending'",[u.id,b.id,b.habit,period]);await db.query("INSERT INTO unlock_requests(id,member_id,habit,period,reason,status,reviewer_id,reviewed_at,expires_at) VALUES($1,$2,$3,$4,$5,'approved',$6,now(),now()+interval '24 hours')",[token(),b.id,b.habit,period,String(b.reason).slice(0,4000),u.id]);await audit(u.id,'unlock.direct',b.id,{habit:b.habit,period},db)});
+    return Response.json({ok:true,message:'The selected period is editable for 24 hours, until its next submission.'});
+  }
   if(b.action==='pastoralRequest') {
     if(!['prayer','counsel','review'].includes(b.kind))deny('Choose a pastoral action.');
     const period=cardPeriod('iRate',today);
@@ -118,7 +126,7 @@ export async function v21Action(b:any,u:any,scope:any[],subject:any):Promise<Res
     const preset=LIFE_CARDS.find(c=>c[0]===b.habit);if(!preset)deny('Unknown StelliLife card.');
     const frequency=['iGain','iLose','iWeigh'].includes(preset[0])?'weekly':'daily';
     const found=await rows('SELECT id FROM commitments WHERE member_id=$1 AND habit=$2 AND archived=false',[subject.id,preset[0]]);
-    if(!found.length)await query('INSERT INTO commitments(id,member_id,habit,frequency,plan,start_date,lock_until) VALUES($1,$2,$3,$4,$5,$6,$6)',[token(),subject.id,preset[0],frequency,preset[1],today]);
+    if(!found.length)await query('INSERT INTO commitments(id,member_id,habit,frequency,plan,start_date,lock_until) VALUES($1,$2,$3,$4,$5,$6,$6)',[token(),subject.id,preset[0],frequency,String(b.plan||preset[1]).slice(0,2000),today]);
     return Response.json({ok:true,message:preset[0]+' added to your habits.'});
   }
   if(b.action==='resource') {

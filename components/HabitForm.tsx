@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, Upload, Clock3, Check } from 'lucide-react';
 import {cardPeriod,submissionOpen} from '@/lib/cards';
 type Props = {
@@ -29,9 +29,10 @@ export default function HabitForm({
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [attachment, setAttachment] = useState(existing?.data?.attachmentId || ''),
-    [uploading, setUploading] = useState(false),[unlock,setUnlock]=useState(false),[reason,setReason]=useState(''),[care,setCare]=useState('');
+    [uploading, setUploading] = useState(false),[unlock,setUnlock]=useState(false),[reason,setReason]=useState(''),[care,setCare]=useState(''),[digital,setDigital]=useState(existing?.data?.digitalNotes===true),[clock,setClock]=useState(new Date());
+  useEffect(()=>{const t=setInterval(()=>setClock(new Date()),1000);return()=>clearInterval(t)},[]);
   const period=cardPeriod(habit,date);
-  const editable=submissionOpen(habit,period,new Date(),state.timezone)||state.unlocks.some((r:any)=>r.member_id===subject&&r.habit===habit&&r.period===period&&r.status==='approved'&&Date.parse(r.expires_at)>Date.now());
+  const editable=submissionOpen(habit,period,clock,state.timezone)||state.unlocks.some((r:any)=>r.member_id===subject&&r.habit===habit&&r.period===period&&r.status==='approved'&&Date.parse(r.expires_at)>Date.now());
   const d = existing?.data || {};
   async function upload(file: File) {
     setUploading(true);
@@ -58,8 +59,9 @@ export default function HabitForm({
     const draft =
       ((e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement)?.value === 'draft';
     const data: any = Object.fromEntries(new FormData(e.currentTarget));
-    for (const k of ['morning', 'adhoc', 'evening', 'done']) data[k] = data[k] === 'on';
+    for (const k of ['morning', 'adhoc', 'evening', 'done','blockDone']) data[k] = data[k] === 'on';
     if (attachment) data.attachmentId = attachment;
+    if(habit==='iNote'){data.digitalNotes=digital;data.bup=new FormData(e.currentTarget).getAll('bup');if(digital){data.notes=[data.notes,...Object.entries(data).filter(([k,v])=>k.startsWith('bsf')&&v).map(([k,v])=>k+': '+v)].filter(Boolean).join('\n')}}
     const support={kind:data.careKind,recipient:data.careRecipient,details:data.careDetails,category:data.careCategory,format:data.careFormat,level:data.careLevel};
     Object.keys(data).filter(k=>k.startsWith('care')).forEach(k=>delete data[k]);
     try {
@@ -92,7 +94,7 @@ export default function HabitForm({
         </header>
         <form onSubmit={submit}>
           <fieldset className="card-form-fields" disabled={!editable}>
-          <div className="ibal-label">
+          <div className="card-phase"><aside>iBlock</aside><div><div className="ibal-label">
             <span>1</span>
             <strong>iBlock</strong>
             <p>Make room for your habit</p>
@@ -113,7 +115,7 @@ export default function HabitForm({
               />
             </label>
           </div>
-          <div className="ibal-label">
+          </div></div><div className="card-phase"><aside>iAct</aside><div><div className="ibal-label">
             <span>2</span>
             <strong>iAct</strong>
             <p>Record what you completed</p>
@@ -187,6 +189,7 @@ export default function HabitForm({
           )}
           {habit === 'iCare' && (
             <>
+              <label>Session format<select name="format" defaultValue={d.format||'Onsite'}><option>Onsite</option><option>Online</option></select></label>
               <label>
                 Did you attend Care Group?
                 <select name="attendance" defaultValue={d.attendance || ''} required>
@@ -207,6 +210,7 @@ export default function HabitForm({
               </label>
             </>
           )}
+          {habit==='iNote'&&<><label className="check-card"><input type="checkbox" checked={digital} onChange={e=>setDigital(e.target.checked)}/>Digital notes enabled</label>{digital&&<><fieldset><legend>BUP · Biblical Underlying Principle</legend>{['Direct God','Direct Prophet','Written Prophet','Direct Jesus','Direct Disciples','Written Disciples'].map((name,i)=><label className="check-card" key={name}><input name="bup" value={name} type="checkbox" defaultChecked={d.bup?.includes(name)}/>BUP{i+1} · {name}</label>)}</fieldset><div className="form-grid">{['Whole Context','Source','Receiver','Relation','Topic','Outline','Logic','Application','Observe','Insight','Connected Verse','Interpretation'].map((name,i)=><label key={name}>BSF{i+1} · {name}<textarea name={'bsf'+(i+1)} rows={2} maxLength={2000} defaultValue={d['bsf'+(i+1)]}/></label>)}</div></>}</>}
           {(habit === 'iNote' || habit === 'iSpeak') && (
             <>
               {habit === 'iSpeak' && (
@@ -318,7 +322,7 @@ export default function HabitForm({
                         defaultChecked={Number(d.rating) === n}
                         required
                       />
-                      <span>{n}</span>
+                      <span>{['😞','🙁','😐','🙂','😄'][n-1]} {n}</span>
                     </label>
                   ))}
                 </div>
@@ -350,6 +354,8 @@ export default function HabitForm({
                 Person or alias
                 <input name="sharee" defaultValue={d.sharee} />
               </label>
+              <label>Seeded names / aliases<input name="seeded" defaultValue={d.seeded}/></label>
+              <label>Bearing fruit · names / aliases<input name="bear" defaultValue={d.bear}/></label>
               <label>
                 Actions, results, learnings and support needed
                 <textarea name="results" defaultValue={d.results} />
@@ -390,11 +396,13 @@ export default function HabitForm({
               </label>
             </>
           )}
-          <div className="ibal-label">
+          </div></div><div className="card-phase"><aside>iLog</aside><div><div className="ibal-label">
             <span>3</span>
             <strong>iLog</strong>
             <p>Save your completion for this period</p>
           </div>
+          <label className="check-card"><input type="checkbox" name="blockDone" defaultChecked={d.blockDone}/>I completed this activity during my blocked time</label>
+          <label>Actual duration (minutes)<input name="duration" type="number" min="0" max="1440" defaultValue={d.duration||''}/></label>
           {existing && (
             <p className="fine-print">
               Correcting this entry creates a new revision and resets its verification.
@@ -420,6 +428,7 @@ export default function HabitForm({
               {busy ? 'Saving…' : 'Submit activity'}
             </button>
           </div>
+          </div></div>
           </fieldset>
         </form>
         <div className="card-unlock-bar"><p className="fine-print">{editable?'Submission window open':'Locked / read-only'} · {period} · {state.timezone}</p><button className="text-button" onClick={()=>setUnlock(!unlock)}>Request Unlock</button></div>

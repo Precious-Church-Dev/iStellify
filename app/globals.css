@@ -3254,6 +3254,7 @@ td .text-button {
   }
 }
 /* PRD 2.1 cards and learning workspace */
+.card-form-fields{border:0!important;margin:0!important;padding:0!important;min-width:0}.standard-stellicard{width:min(780px,95vw)!important;max-width:780px!important}.standard-stellicard .ibal-label{margin:0 0 16px}.standard-stellicard .ibal-label>span{display:none}.standard-stellicard .card-phase>div{padding:20px}.standard-stellicard .modal-actions{flex-wrap:wrap}
 .weekly-card-modal{width:min(1120px,96vw)!important;max-width:1120px!important;padding:28px!important}
 .card-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 0 22px}.card-controls .text-button{margin-left:auto;display:flex;align-items:center;gap:7px}
 .card-phase{display:grid;grid-template-columns:64px minmax(0,1fr);border:1px solid var(--line,#dde4e9);border-radius:12px;overflow:hidden;margin-bottom:15px;background:var(--surface,#fff)}

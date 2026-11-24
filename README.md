@@ -1,5 +1,7 @@
 # iStellify
 
+PRD 2.1 setup, integration settings, card deadlines and operational details: [Version 2.1 operations](docs/PRD-2.1.md).
+
 Precious Church's private member growth and ministry application. The pilot includes authentication, roster import, habit logs, scoped groups, independent verification, tithe declarations/reconciliation, guardian-assisted Kids logging and administration, with the module structure from the supplied wireframes.
 
 ## Member experience

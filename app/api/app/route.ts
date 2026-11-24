@@ -1,5 +1,5 @@
 import { v21Action, v21State } from '@/lib/v21';
-import { cardPeriod, localClock, submissionOpen, reviewOpen, fragments, READ_TYPES } from '@/lib/cards';
+import { cardPeriod, localClock, submissionOpen, reviewOpen, fragments, READ_TYPES, scheduled } from '@/lib/cards';
 import { query, transaction } from '@/lib/db.mjs';
 import {
   audit,
@@ -71,7 +71,7 @@ export async function GET(req: Request) {
       [subject.id, day, weekStart(day), day.slice(0, 7)],
     );
     const all = await run(
-      `SELECT l.*,m.name,m.nickname,m.pcm,m.timezone FROM logs l JOIN members m ON m.id=l.member_id WHERE l.period IN ($1,$2,$3) AND l.status<>'draft' AND l.member_id<>$4 AND (l.group_ids && $5::text[] OR $6::boolean) ORDER BY l.updated_at DESC LIMIT 300`,
+      `SELECT l.*,m.name,m.nickname,m.pcm,m.timezone,(SELECT max(expires_at) FROM unlock_requests r WHERE r.member_id=l.member_id AND r.habit=l.habit AND r.period=l.period AND r.status='used' AND r.expires_at>now()) AS grace_expires_at FROM logs l JOIN members m ON m.id=l.member_id WHERE l.period IN ($1,$2,$3) AND l.status<>'draft' AND l.member_id<>$4 AND (l.group_ids && $5::text[] OR $6::boolean) ORDER BY l.updated_at DESC LIMIT 300`,
       [
         day,
         weekStart(day),
@@ -135,12 +135,9 @@ export async function GET(req: Request) {
       : null;
     const finance = all.filter((l) => l.habit === 'iTithes' && canFinance(user, scope, l));
     return Response.json({
-      user,
       subject,
-      today,
       date: day,
       scope: subjectScope,
-      logs: own,
       review,
       peers,
       notifications: notes,
@@ -190,7 +187,8 @@ export async function POST(req: Request) {
         );
         if (!c.length) fail('Habit is unavailable.');
         frequency = c[0].frequency;
-        if (day < String(c[0].start_date).slice(0, 10)) fail('This habit had not started yet.');
+        if(!scheduled(day,frequency,c[0].schedule))fail('This habit is not scheduled for this day or period.');
+        if(day<String(c[0].start_date).slice(0,10)&&(frequency==='daily'||cardPeriod(habit,day,frequency)!==cardPeriod(habit,String(c[0].start_date).slice(0,10),frequency)))fail('This habit had not started yet.');
       }
       const period = cardPeriod(habit, day, frequency);
       const grace = (await run("SELECT * FROM unlock_requests WHERE member_id=$1 AND habit=$2 AND period=$3 AND status='approved' AND expires_at>now()",[subject.id,habit,period]))[0];
@@ -310,7 +308,7 @@ export async function POST(req: Request) {
           await db.query('INSERT INTO fragment_credits(log_id,member_id,points) VALUES($1,$2,$3) ON CONFLICT(log_id) DO UPDATE SET points=excluded.points',[id,subject.id,points]);
           await db.query('UPDATE members SET stellar_fragments=(SELECT COALESCE(sum(points),0) FROM fragment_credits WHERE member_id=$1) WHERE id=$1',[subject.id]);
           if(grace) await db.query("UPDATE unlock_requests SET status='used' WHERE id=$1",[grace.id]);
-          await db.query('UPDATE stellinudge_logs SET recipient_completed_after_nudge=true WHERE recipient_church_id=$1 AND stellicard_type=$2 AND period=$3 AND created_at<now()',[subject.id,habit,period]);
+          if(submissionOpen(habit,period,new Date(),zone,frequency)) await db.query('UPDATE stellinudge_logs SET recipient_completed_after_nudge=true WHERE recipient_church_id=$1 AND stellicard_type=$2 AND period=$3 AND created_at<now()',[subject.id,habit,period]);
         }
         if (data.attachmentId)
           await db.query('UPDATE attachments SET log_id=$1 WHERE id=$2', [id, data.attachmentId]);
@@ -338,7 +336,8 @@ export async function POST(req: Request) {
         const log = r.rows[0];
         if (!log || !canReview(u, scope, log)) fail('You cannot review this entry.', 403);
         const memberZone=(await db.query('SELECT timezone FROM members WHERE id=$1',[log.member_id])).rows[0]?.timezone || 'Asia/Manila';
-        if(!reviewOpen(log.habit,log.period,new Date(),memberZone)) fail('This review window is closed. The record is read-only.',403);
+        const graceReview=(await db.query("SELECT id FROM unlock_requests WHERE member_id=$1 AND habit=$2 AND period=$3 AND status='used' AND expires_at>now()",[log.member_id,log.habit,log.period])).rows.length>0;
+        if(!reviewOpen(log.habit,log.period,new Date(),memberZone)&&!graceReview) fail('This review window is closed. The record is read-only.',403);
         if (log.version !== Number(b.version) || log.status !== 'pending')
           fail('This entry has already changed. Reload the queue.', 409);
         let received = null;
@@ -375,8 +374,10 @@ export async function POST(req: Request) {
       const duration = Number(b.duration);
       if (!Number.isInteger(duration) || duration < 1 || duration > 1440)
         fail('Duration must be 1 to 1440 minutes.');
+      const schedule=b.schedule||{};
+      if(schedule.slots&&(!Array.isArray(schedule.slots)||!schedule.slots.length||schedule.slots.some((n:unknown)=>!Number.isInteger(n)||Number(n)<0||Number(n)>(b.frequency==='daily'?6:b.frequency==='weekly'?5:2))))fail('Choose a valid custom schedule.');
       await query(
-        'INSERT INTO commitments(id,member_id,habit,frequency,planned_time,duration,plan,start_date,lock_until) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+        'INSERT INTO commitments(id,member_id,habit,frequency,planned_time,duration,plan,start_date,lock_until,schedule) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
         [
           token(),
           subject.id,
@@ -387,6 +388,7 @@ export async function POST(req: Request) {
           String(b.plan || '').slice(0, 2000),
           today,
           lockEnd(today, b.frequency),
+          JSON.stringify(schedule),
         ],
       );
       return Response.json({

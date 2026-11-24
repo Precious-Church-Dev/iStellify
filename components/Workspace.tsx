@@ -1,6 +1,7 @@
 'use client';
 import WeeklyCard from './WeeklyCard';
 import Profile from './Profile';
+import CommitmentForm from './CommitmentForm';
 import Baptism from './Baptism';
 import {Coach, ChurchCalendar, ReviewDashboard, UnlockQueue, NudgePanel} from './Updates';
 import {LIFE_CARDS, cardPeriod, reviewOpen} from '@/lib/cards';
@@ -620,48 +621,14 @@ export default function Workspace() {
           )}
           {view === 'life' && (
             <>
-              <section className="panel"><h2>StelliLife card library</h2><p className="muted">Choose a card to add to your personal habits.</p><div className="life-library">{LIFE_CARDS.map(([name,description])=><button key={name} className="life-preset" onClick={()=>act({action:'adoptLifeCard',habit:name,subject:s.subject.id}).catch(e=>setToast(e.message))}><strong>{name}</strong><small>{description||'Personalize your plan'}</small><Plus size={14}/></button>)}</div></section>
+              <section className="panel"><h2>StelliLife card library</h2><p className="muted">Choose a card to add to your personal habits.</p><div className="life-library">{LIFE_CARDS.map(([name,description])=><button key={name} className="life-preset" onClick={()=>{const plan=description||prompt('Describe your '+name+' habit (optional)')||'';act({action:'adoptLifeCard',habit:name,plan,subject:s.subject.id}).catch(e=>setToast(e.message))}}><strong>{name}</strong><small>{description||'Personalize your plan'}</small><Plus size={14}/></button>)}</div></section>
               <section className="panel">
                 <h2>Make a personal commitment</h2>
                 <p className="muted">
                   Choose a habit you want to build. Its schedule stays locked through its commitment
                   window.
                 </p>
-                <SimpleForm
-                  label="Create habit"
-                  className="inline-form"
-                  onSubmit={(data) => act({ ...data, action: 'commitment', subject: s.subject.id })}
-                >
-                  <label>
-                    Habit name
-                    <input
-                      name="name"
-                      required
-                      maxLength={100}
-                      placeholder="For example, a morning walk"
-                    />
-                  </label>
-                  <label>
-                    Frequency
-                    <select name="frequency">
-                      <option value="daily">Daily</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="monthly">Monthly</option>
-                    </select>
-                  </label>
-                  <label>
-                    Time
-                    <input type="time" name="time" />
-                  </label>
-                  <label>
-                    Minutes
-                    <input type="number" name="duration" min="1" max="1440" defaultValue={15} />
-                  </label>
-                  <label className="wide">
-                    Plan of action
-                    <input name="plan" placeholder="How will you make time for this?" />
-                  </label>
-                </SimpleForm>
+                <CommitmentForm subject={s.subject.id} act={act}/>
               </section>
               <div className="section-heading">
                 <h2>Your committed habits</h2>
@@ -1445,7 +1412,7 @@ export default function Workspace() {
             </header>
             <EntryDetails log={reviewing} />
             {reviewing.data.attachmentId&&<a href={'/api/attachments?id='+reviewing.data.attachmentId+'&preview=true'} target="_blank" rel="noreferrer"><img style={{maxWidth:250,maxHeight:220,objectFit:'contain'}} src={'/api/attachments?id='+reviewing.data.attachmentId+'&preview=true'} alt="Handwritten notes preview"/></a>}
-            {reviewing.status === 'pending' && reviewOpen(reviewing.habit,reviewing.period,new Date(),reviewing.timezone||s.timezone) ? (
+            {reviewing.status === 'pending' && (reviewOpen(reviewing.habit,reviewing.period,new Date(),reviewing.timezone||s.timezone)||Date.parse(reviewing.grace_expires_at||'')>Date.now()) ? (
               <SimpleForm
                 label="Save review"
                 onSubmit={async (d) => {

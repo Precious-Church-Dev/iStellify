@@ -49,3 +49,9 @@ export function fragments(habit: string, data: Record<string,any>) {
 }
 export function mood(hour:number, completed=false): 'happy'|'sad'|'disappointed' { return completed||hour<21?'happy':hour<22?'sad':'disappointed'; }
 export function privileged(roles:string[],scope:{roles:string[]}[]=[]) {return roles.includes('admin')||roles.includes('auditor')||scope.some(g=>g.roles.includes('auditor'));}
+export function scheduled(day:string,frequency:string,schedule:{slots?:number[]}={}) {
+  if(!schedule.slots?.length)return true;
+  const d=new Date(day+'T12:00:00Z');
+  const index=frequency==='daily'?d.getUTCDay():frequency==='monthly'?d.getUTCMonth()%3:Math.floor((Date.parse(weekStart(day))-Date.parse(weekStart(day.slice(0,7)+'-01')))/604800000);
+  return schedule.slots.includes(index);
+}
