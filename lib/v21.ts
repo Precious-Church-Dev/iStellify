@@ -91,7 +91,7 @@ export async function v21Action(b:any,u:any,scope:any[],subject:any):Promise<Res
         const message=String(b.message||`${u.nickname||u.name} is cheering you on. Make time for your ${habit}Card before it locks.`).trim().slice(0,500);if(!message)deny('Enter an encouragement message.');
         const added=await db.query('INSERT INTO stellinudge_logs(nudge_id,sender_church_id,recipient_church_id,group_context,group_id,stellicard_type,period,message) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(sender_church_id,recipient_church_id,stellicard_type,period) DO NOTHING RETURNING nudge_id',[token(),u.id,p.id,p.kind,p.group_id,habit,period,message]);
         if(!added.rows.length)continue;
-        await db.query('INSERT INTO notifications(id,sender_id,recipient_id,message,day) VALUES($1,NULL,$2,$3,$4)',[token(),p.id,message,day]);sent++;
+        await db.query('INSERT INTO notifications(id,sender_id,recipient_id,message,day) VALUES($1,NULL,$2,$3,$4)',[token(),p.id,b.message?`${u.nickname||u.name}: ${message}`:message,day]);sent++;
       }
       await audit(u.id,'nudge.send',habit,{sent},db);
     });

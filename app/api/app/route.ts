@@ -203,7 +203,7 @@ export async function POST(req: Request) {
       if (!b.draft) {
         if (
           habit === 'iRead' &&
-          (!(data.type || (Array.isArray(data.activities)&&data.activities.some((t:string)=>READ_TYPES.includes(t)))) ||
+          (!(READ_TYPES.includes(String(data.type)) || (Array.isArray(data.activities)&&data.activities.some((t:string)=>READ_TYPES.includes(t)))) ||
             !Number.isInteger(Number(data.duration)) ||
             Number(data.duration) < 1 ||
             Number(data.duration) > 1440)
