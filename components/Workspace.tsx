@@ -345,7 +345,7 @@ export default function Workspace() {
             ? 'tithes'
             : id === 'settings'
               ? 'settings'
-              : 'admin',
+              : id === 'coach' ? 'coach' : 'admin',
     );
   }
   const sectionName =
@@ -541,7 +541,7 @@ export default function Workspace() {
           {coreModule && view === 'home' && (<><MemberOverview state={s} onOpen={go} onHabit={openHabit} /><PersonalSections view="stat" state={s} date={activeDate} onRefresh={refresh} onWeeklyRate={()=>openHabit('iRate')} /></>)}
           {view==='lot' && <section className="panel"><span className="eyebrow">STELLILOT</span><h2>Latest of Today</h2><p className="muted">Coming in 2028.</p></section>}
           {view==='cleanse' && <Baptism state={s} act={act}/>}
-          {moduleId==='coach' && <Coach state={s} act={act}/>}
+          {moduleId==='coach' && view==='coach' && <Coach state={s} act={act}/>}
           {moduleId==='church' && view==='ministry' && <ChurchCalendar state={s} act={act}/>}
           {coreModule && ['stat', 'goals', 'rate', 'save', 'best'].includes(view) && (
             <PersonalSections

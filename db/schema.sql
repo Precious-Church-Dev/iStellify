@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS church_events (
  images JSONB NOT NULL DEFAULT '[]',owner_id TEXT NOT NULL REFERENCES members(id),updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS event_images (id TEXT PRIMARY KEY,event_id INTEGER REFERENCES church_events(id) ON DELETE CASCADE,body BYTEA NOT NULL,mime TEXT NOT NULL,owner_id TEXT NOT NULL REFERENCES members(id));
+CREATE TABLE IF NOT EXISTS church_event_requests (id TEXT PRIMARY KEY,member_id TEXT NOT NULL REFERENCES members(id),name TEXT NOT NULL,starts_at TIMESTAMPTZ NOT NULL,details TEXT NOT NULL DEFAULT '',status TEXT NOT NULL DEFAULT 'pending',created_at TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS password_resets (token_hash TEXT PRIMARY KEY,member_id TEXT NOT NULL REFERENCES members(id),expires_at TIMESTAMPTZ NOT NULL,used_at TIMESTAMPTZ);
 CREATE TABLE IF NOT EXISTS baptism_records (id TEXT PRIMARY KEY,member_id TEXT NOT NULL UNIQUE REFERENCES members(id),baptism_date DATE NOT NULL,location TEXT NOT NULL,minister TEXT NOT NULL,certificate_url TEXT NOT NULL DEFAULT '',photos JSONB NOT NULL DEFAULT '[]',recorded_by TEXT NOT NULL REFERENCES members(id),updated_at TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS stellinudge_logs (

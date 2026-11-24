@@ -22,14 +22,15 @@ export async function v21State(u:any,scope:any[],subject:any,day:string) {
   return {profile,logs,today:clock.day,timezone:zone,serverNow:new Date().toISOString(),unlocks,leaders,pastoralRequests:requests,nudgeStats,
     resources:await rows('SELECT * FROM coach_resources WHERE archived=false OR $1::boolean ORDER BY position,title',[u.roles.includes('admin')]),
     events:await rows('SELECT e.*,COALESCE((SELECT json_agg(i.id) FROM event_images i WHERE i.event_id=e.id),\'[]\') AS image_ids FROM church_events e ORDER BY starts_at LIMIT 300'),
+    eventRequests:await rows('SELECT r.*,m.name AS member_name,m.pcm FROM church_event_requests r JOIN members m ON m.id=r.member_id WHERE r.member_id=$1 OR $2::boolean ORDER BY r.created_at DESC LIMIT 100',[u.id,u.roles.includes('admin')]),
     baptism:(await rows('SELECT b.*,baptism_date::text AS baptism_date FROM baptism_records b WHERE member_id=$1',[subject.id]))[0]||null,
     user:{...u,roles:[...new Set([...u.roles,...scope.flatMap(g=>g.roles.filter((r:string)=>['auditor','servant','captain'].includes(r)))])]},
     nudgeHistory:await rows('SELECT recipient_church_id,stellicard_type,period FROM stellinudge_logs WHERE sender_church_id=$1 AND created_at>now()-interval \'40 days\'',[u.id]),
   };
 }
-export async function canUnlock(u:any,scope:any[],id:string) {
+export async function canUnlock(u:any,scope:any[],id:string,db:any={query}) {
   if(u.roles.some((r:string)=>['admin','pastor'].includes(r)))return true;
-  const target=await memberships(id);
+  const target=(await db.query('SELECT group_id,roles FROM memberships WHERE member_id=$1',[id])).rows;
   return scope.some(g=>g.roles.some((r:string)=>['servant','captain'].includes(r))&&target.some(t=>t.group_id===g.group_id));
 }
 export function mediaUrl(value:unknown,document=false) {
@@ -41,6 +42,17 @@ export function mediaUrl(value:unknown,document=false) {
 export async function v21Action(b:any,u:any,scope:any[],subject:any):Promise<Response|null> {
   const zone=(await rows('SELECT timezone FROM members WHERE id=$1',[subject.id]))[0]?.timezone||'Asia/Manila';
   const today=localClock(new Date(),zone).day;
+  if(b.action==='eventRequest'){
+    if(!String(b.name||'').trim()||String(b.name).length>100||!Number.isFinite(Date.parse(b.startsAt))||String(b.details||'').length>12000)deny('Enter an event name, date/time and details.');
+    await query('INSERT INTO church_event_requests(id,member_id,name,starts_at,details) VALUES($1,$2,$3,$4,$5)',[token(),u.id,String(b.name).trim(),new Date(b.startsAt).toISOString(),String(b.details||'')]);
+    return Response.json({ok:true,message:'Event request sent to the administrator.'});
+  }
+  if(b.action==='reviewEventRequest'){
+    if(!u.roles.includes('admin'))deny('Only Admin can review event requests.',403);
+    if(!['published','declined'].includes(b.decision))deny('Choose publish or decline.');
+    await transaction(async(db:any)=>{const r=(await db.query("SELECT * FROM church_event_requests WHERE id=$1 AND status='pending' FOR UPDATE",[b.id])).rows[0];if(!r)deny('This event request has already changed.',409);if(b.decision==='published')await db.query('INSERT INTO church_events(name,starts_at,details,owner_id) VALUES($1,$2,$3,$4)',[r.name,r.starts_at,r.details,u.id]);await db.query('UPDATE church_event_requests SET status=$1 WHERE id=$2',[b.decision,r.id]);await audit(u.id,'event.request.'+b.decision,r.id,{},db)});
+    return Response.json({ok:true,message:'Event request reviewed.'});
+  }
   if(b.action==='unlockPeriod'){
     if(!u.roles.includes('admin'))deny('Administrator access required.',403);
     if(!validDay(String(b.date))||b.date>today||!allHabits.includes(b.habit)||!String(b.reason||'').trim())deny('Choose a past/current date, StelliCard and exception reason.');
@@ -100,7 +112,7 @@ export async function v21Action(b:any,u:any,scope:any[],subject:any):Promise<Res
     if(!['approved','declined'].includes(b.decision))deny('Choose approve or decline.');
     await transaction(async(db:any)=>{
       const r=(await db.query('SELECT * FROM unlock_requests WHERE id=$1 FOR UPDATE',[b.id])).rows[0];
-      if(!r||!await canUnlock(u,scope,r.member_id))deny('You cannot review this request.',403);
+      if(!r||!await canUnlock(u,scope,r.member_id,db))deny('You cannot review this request.',403);
       if(r.member_id===u.id)deny('Another authorized leader must approve your own request.',403);
       if(r.status!=='pending')deny('This request has already been reviewed.',409);
       await db.query("UPDATE unlock_requests SET status=$1,reviewer_id=$2,reviewed_at=now(),expires_at=CASE WHEN $1='approved' THEN now()+interval '24 hours' ELSE NULL END WHERE id=$3",[b.decision,u.id,r.id]);

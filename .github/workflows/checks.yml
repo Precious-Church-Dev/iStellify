@@ -1,8 +1,12 @@
 name: Pilot checks
 on: [push, pull_request]
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,6 +30,14 @@ jobs:
             sleep 1
           done
           node scripts/check-v21.mjs
+      - name: Install browser verification tools
+        run: |
+          npm install --no-save --package-lock=false @playwright/test
+          npx playwright install --with-deps chromium
+      - name: Verify the member screens on desktop and mobile
+        env:
+          DEMO_PASSWORD: Synthetic-CI-Only-2026
+        run: node scripts/check-ui.mjs
       - name: Show server diagnostics on failure
         if: failure()
         run: cat /tmp/istellify.log 2>/dev/null || true

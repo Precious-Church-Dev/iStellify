@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 const base=process.env.TEST_URL||'http://127.0.0.1:3000';
 if(!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(base))throw Error('Localhost only');
 const password=process.env.DEMO_PASSWORD;if(!password)throw Error('DEMO_PASSWORD is required');
-async function call(cookie,data){const r=await fetch(base+'/api/app',{method:data?'POST':'GET',headers:{Cookie:cookie||'',...(data?{'Content-Type':'application/json',Origin:base}:{})},...(data?{body:JSON.stringify(data)}:{})});return {status:r.status,body:await r.json()}}
+async function call(cookie,data){const r=await fetch(base+'/api/app',{method:data?'POST':'GET',signal:AbortSignal.timeout(15000),headers:{Cookie:cookie||'',...(data?{'Content-Type':'application/json',Origin:base}:{})},...(data?{body:JSON.stringify(data)}:{})});return {status:r.status,body:await r.json()}}
 async function login(pcm){const r=await fetch(base+'/api/auth',{method:'POST',headers:{'Content-Type':'application/json',Origin:base},body:JSON.stringify({action:'login',pcm,password})});assert.equal(r.status,200,await r.clone().text());return r.headers.get('set-cookie').split(';')[0]}
 const admin=await login('PCM0001'),member=await login('PCM0003'),servant=await login('PCM0004'),outsider=await login('PCM0008');
 let r=await call(member);assert.equal(r.status,200,JSON.stringify(r.body));const today=r.body.today;
