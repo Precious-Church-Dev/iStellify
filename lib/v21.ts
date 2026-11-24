@@ -12,7 +12,7 @@ export async function v21State(u:any,scope:any[],subject:any,day:string) {
   const clock=localClock(new Date(),zone);
   const d=new Date(day+'T12:00:00Z'),sun=new Date(d);sun.setUTCDate(d.getUTCDate()-d.getUTCDay());const end=new Date(sun);end.setUTCDate(end.getUTCDate()+7);
   const quarter=Math.floor(d.getUTCMonth()/3)*3;const from=day.slice(0,4)+'-'+String(quarter+1).padStart(2,'0');const until=new Date(Date.UTC(d.getUTCFullYear(),quarter+3,0,12)).toISOString().slice(0,10);
-  const logs=await rows('SELECT * FROM logs WHERE member_id=$1 AND period>=$2 AND period<=$3 ORDER BY updated_at DESC',[subject.id,from,until]);
+  const logs=await rows("SELECT l.*,(SELECT a.drive_web_view_link FROM attachments a WHERE a.id=l.data->>'attachmentId' AND a.owner_id=l.member_id) AS attachment_drive_url FROM logs l WHERE member_id=$1 AND period>=$2 AND period<=$3 ORDER BY updated_at DESC",[subject.id,from,until]);
   const candidates=await rows(`SELECT r.*,m.name,m.pcm FROM unlock_requests r JOIN members m ON m.id=r.member_id WHERE r.member_id=$1 OR $2::boolean OR EXISTS(SELECT 1 FROM memberships a JOIN memberships t ON t.group_id=a.group_id WHERE a.member_id=$1 AND t.member_id=r.member_id AND a.roles && ARRAY['servant','captain']::text[]) ORDER BY r.created_at DESC LIMIT 200`,[u.id,u.roles.some((r:string)=>['admin','pastor'].includes(r))]);
   const unlocks=candidates.map(r=>({...r,can_review:r.member_id!==u.id&&(u.roles.some((x:string)=>['admin','pastor'].includes(x))||scope.some(g=>g.roles.some((x:string)=>['servant','captain'].includes(x))))}));
   const leaders=await rows(`SELECT DISTINCT m.id,m.name,m.pcm,m.roles FROM members m WHERE m.active=true AND ('pastor'=ANY(m.roles) OR EXISTS(SELECT 1 FROM memberships lead JOIN memberships mine ON mine.group_id=lead.group_id WHERE lead.member_id=m.id AND mine.member_id=$1 AND lead.roles && ARRAY['servant','captain']::text[]))`,[u.id]);
@@ -31,7 +31,7 @@ export async function v21State(u:any,scope:any[],subject:any,day:string) {
 export async function canUnlock(u:any,scope:any[],id:string,db:any={query}) {
   if(u.roles.some((r:string)=>['admin','pastor'].includes(r)))return true;
   const target=(await db.query('SELECT group_id,roles FROM memberships WHERE member_id=$1',[id])).rows;
-  return scope.some(g=>g.roles.some((r:string)=>['servant','captain'].includes(r))&&target.some(t=>t.group_id===g.group_id));
+  return scope.some(g=>g.roles.some((r:string)=>['servant','captain'].includes(r))&&target.some((t:any)=>t.group_id===g.group_id));
 }
 export function mediaUrl(value:unknown,document=false) {
   const s=String(value||'').trim();if(!s)return '';

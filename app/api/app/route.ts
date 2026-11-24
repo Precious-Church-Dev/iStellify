@@ -71,7 +71,7 @@ export async function GET(req: Request) {
       [subject.id, day, weekStart(day), day.slice(0, 7)],
     );
     const all = await run(
-      `SELECT l.*,m.name,m.nickname,m.pcm,m.timezone,(SELECT max(expires_at) FROM unlock_requests r WHERE r.member_id=l.member_id AND r.habit=l.habit AND r.period=l.period AND r.status='used' AND r.expires_at>now()) AS grace_expires_at FROM logs l JOIN members m ON m.id=l.member_id WHERE l.period IN ($1,$2,$3) AND l.status<>'draft' AND l.member_id<>$4 AND (l.group_ids && $5::text[] OR $6::boolean) ORDER BY l.updated_at DESC LIMIT 300`,
+      `SELECT l.*,m.name,m.nickname,m.pcm,m.timezone,(SELECT max(expires_at) FROM unlock_requests r WHERE r.member_id=l.member_id AND r.habit=l.habit AND r.period=l.period AND r.status='used' AND r.expires_at>now()) AS grace_expires_at,(SELECT a.drive_web_view_link FROM attachments a WHERE a.id=l.data->>'attachmentId' AND a.owner_id=l.member_id) AS attachment_drive_url FROM logs l JOIN members m ON m.id=l.member_id WHERE l.period IN ($1,$2,$3) AND l.status<>'draft' AND l.member_id<>$4 AND (l.group_ids && $5::text[] OR $6::boolean) ORDER BY l.updated_at DESC LIMIT 300`,
       [
         day,
         weekStart(day),
@@ -218,7 +218,7 @@ export async function POST(req: Request) {
           (!['Yes', 'No'].includes(data.attendance) || (data.attendance === 'No' && !data.reason))
         )
           fail('Select attendance and a reason when absent.');
-        if (habit === 'iNote' && !String(data.notes || '').trim() && !data.attachmentId)
+        if (habit === 'iNote' && !String(data.notes || '').trim() && !data.attachmentId && !Object.entries(data).some(([k,v])=>/^bsf\d+$/.test(k)&&String(v||'').trim()))
           fail('Add notes or a handwritten notes attachment.');
         if (habit === 'iSpeak' && !String(data.answer || '').trim() && !data.attachmentId)
           fail('Add your answer or an attachment.');

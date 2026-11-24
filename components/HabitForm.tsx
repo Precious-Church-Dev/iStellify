@@ -61,7 +61,7 @@ export default function HabitForm({
     const data: any = Object.fromEntries(new FormData(e.currentTarget));
     for (const k of ['morning', 'adhoc', 'evening', 'done','blockDone']) data[k] = data[k] === 'on';
     if (attachment) data.attachmentId = attachment;
-    if(habit==='iNote'){data.digitalNotes=digital;data.bup=new FormData(e.currentTarget).getAll('bup');if(digital){data.notes=[data.notes,...Object.entries(data).filter(([k,v])=>k.startsWith('bsf')&&v).map(([k,v])=>k+': '+v)].filter(Boolean).join('\n')}}
+    if(habit==='iNote'){data.digitalNotes=digital;data.bup=new FormData(e.currentTarget).getAll('bup');}
     const support={kind:data.careKind,recipient:data.careRecipient,details:data.careDetails,category:data.careCategory,format:data.careFormat,level:data.careLevel};
     Object.keys(data).filter(k=>k.startsWith('care')).forEach(k=>delete data[k]);
     try {

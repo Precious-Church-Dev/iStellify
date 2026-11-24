@@ -1664,6 +1664,7 @@ function EntryDetails({ log }: { log: any }) {
           ))}
         </div>
       )}
+      {log.attachment_drive_url&&<a className="text-button" href={log.attachment_drive_url} target="_blank" rel="noreferrer">Open notes in church Google Drive</a>}
       {d.attachmentId && (
         <a className="button secondary" href={'/api/attachments?id=' + d.attachmentId}>
           <Download size={17} />
