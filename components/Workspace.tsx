@@ -574,7 +574,7 @@ export default function Workspace() {
                 state={s}
                 onOpen={go}
                 onHabit={openHabit}
-                journeyDay={clock.day}
+                journeyDay={s.subject.id === u.id ? clock.day : localClock(now, s.timezone).day}
                 onProfile={() => openModule('settings')}
               />
               <PersonalSections

@@ -20,6 +20,16 @@ export const STELLI_STATES = {
 export type StelliStateTag = keyof typeof STELLI_STATES;
 export type MemberGender = 'male' | 'female' | 'unspecified';
 
+const WALKERS = {
+  iStellify: { male: 'StelliPath_Walk_Man.png', female: 'StelliPath_Walk_Woman.png' },
+  StelliKids: { male: 'StelliPath_Walk_Boy.png', female: 'StelliPath_Walk_Girl.png' },
+};
+
+export function stelliWalker(tag: string, gender: MemberGender) {
+  if (gender !== 'male' && gender !== 'female') return undefined;
+  return (tag === 'StelliKids' ? WALKERS.StelliKids : WALKERS.iStellify)[gender];
+}
+
 export function stelliState(value?: string): StelliStateTag {
   switch (value?.toLowerCase()) {
     case 'sp2s':

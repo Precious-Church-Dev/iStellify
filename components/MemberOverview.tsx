@@ -41,6 +41,8 @@ export default function MemberOverview({
       (l: any) => s.commitments.some((c: any) => c.id === l.habit) && l.status !== 'draft',
     );
   const stateLabel = person.spiritual_state || 'SBG';
+  const ownProfile = person.id === s.user.id;
+  const journeyProfile = ownProfile ? s.profile : person;
   const hour = Number(
     new Intl.DateTimeFormat('en-US', {
       timeZone: s.timezone || 'Asia/Manila',
@@ -52,20 +54,7 @@ export default function MemberOverview({
   const goals = s.personalItems?.filter((r: any) => r.kind === 'goal') || [];
   return (
     <div className={'member-overview ' + (kids ? 'kids-overview' : '')}>
-      {!kids ? (
-        <StelliPath
-          day={journeyDay}
-          onProfile={onProfile}
-          member={{
-            churchNumber: person.pcm,
-            nickname: person.nickname || person.name.split(' ')[0],
-            stellarFragments: s.profile.stellar_fragments,
-            avatarUrl: s.profile.has_avatar ? '/api/media?kind=avatar&v=' + s.serverNow : undefined,
-            gender: s.profile.gender,
-            stelliState: stelliState(stateLabel),
-          }}
-        />
-      ) : (
+      {kids && (
         <section className="greet-panel">
           <div className="greet-character">
             <Mascot />
@@ -99,11 +88,22 @@ export default function MemberOverview({
           </div>
         </section>
       )}
-      {kids && (
-        <div className="fragment-banner">
-          ✦ {s.profile.stellar_fragments} Stellar Fragments earned
-        </div>
-      )}
+      <StelliPath
+        day={journeyDay}
+        onProfile={ownProfile ? onProfile : undefined}
+        member={{
+          churchNumber: person.pcm,
+          nickname: person.nickname || person.name.split(' ')[0],
+          tag: person.tag,
+          stellarFragments: journeyProfile.stellar_fragments,
+          avatarUrl:
+            ownProfile && s.profile.has_avatar
+              ? '/api/media?kind=avatar&v=' + s.serverNow
+              : undefined,
+          gender: journeyProfile.gender,
+          stelliState: stelliState(stateLabel),
+        }}
+      />
       {s.badges.map((b: any) => (
         <div className="fragment-banner" key={b.year}>
           🏅 Brother’s Keeper · {b.year}

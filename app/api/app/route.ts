@@ -58,7 +58,7 @@ function outError(e: unknown) {
 async function subjectFor(u: any, id: string) {
   if (!id || id === u.id) return u;
   const child = await run(
-    'SELECT m.id,m.pcm,m.name,m.nickname,m.tag,m.roles,m.spiritual_state FROM guardian_links gl JOIN members m ON m.id=gl.child_id WHERE gl.guardian_id=$1 AND gl.child_id=$2 AND m.active=true',
+    'SELECT m.id,m.pcm,m.name,m.nickname,m.tag,m.roles,m.spiritual_state,m.gender,m.stellar_fragments FROM guardian_links gl JOIN members m ON m.id=gl.child_id WHERE gl.guardian_id=$1 AND gl.child_id=$2 AND m.active=true',
     [u.id, id],
   );
   if (!child.length) fail('This member is not linked to your account.', 403);

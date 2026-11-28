@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { localClock } from '../lib/cards.ts';
-import { stelliPath, stelliState } from '../lib/stellipath.ts';
+import { stelliPath, stelliState, stelliWalker } from '../lib/stellipath.ts';
 import { appIconFilename, resolveMascotMood } from '../lib/stelli-mascot.ts';
 
 test('StelliPath switches phases at local calendar boundaries and clamps past milestones', () => {
@@ -45,4 +45,13 @@ test('Stelli mood changes at 9 and 11 pm, and daily completion takes priority', 
     assert.equal(resolveMascotMood(hour, completed), mood);
   }
   assert.equal(appIconFilename('blissful'), 'App_Icon_BlissFul_Stelli.png');
+});
+
+test('StelliPath uses the supplied artwork for adult and StelliKids profiles', () => {
+  assert.equal(stelliWalker('iStellify', 'male'), 'StelliPath_Walk_Man.png');
+  assert.equal(stelliWalker('iStellify', 'female'), 'StelliPath_Walk_Woman.png');
+  assert.equal(stelliWalker('StelliKids', 'male'), 'StelliPath_Walk_Boy.png');
+  assert.equal(stelliWalker('StelliKids', 'female'), 'StelliPath_Walk_Girl.png');
+  assert.equal(stelliWalker('iStellify', 'unspecified'), undefined);
+  assert.equal(stelliWalker('StelliKids', 'unspecified'), undefined);
 });
