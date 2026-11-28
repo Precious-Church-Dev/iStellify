@@ -33,6 +33,7 @@ export default function StelliPath({
   member: {
     churchNumber: string;
     nickname: string;
+    stellarFragments: number;
     avatarUrl?: string;
     gender: MemberGender;
     stelliState: StelliStateTag;
@@ -65,10 +66,14 @@ export default function StelliPath({
                 <Camera size={15} aria-hidden="true" />
               </span>
             </button>
-            <div>
+            <div className="stellipath-profile-details">
               <h2 id="stellipath-heading">StelliPath</h2>
               <span className="stellipath-code">{member.churchNumber}</span>
               <strong>{member.nickname}</strong>
+              <p className="stellipath-fragments">
+                <span>Stellar Fragments Earned:</span>{' '}
+                <b>{member.stellarFragments.toLocaleString('en-US')}</b>
+              </p>
             </div>
           </div>
           <div className="stellipath-status">

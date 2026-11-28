@@ -22,6 +22,15 @@ try {
   await page.getByRole('heading', { name: 'StelliPath', exact: true }).waitFor();
   assert.equal(await page.locator('.stellipath-countdowns li').count(), 4);
   assert.equal(await page.locator('.stellipath-code').textContent(), 'PCM0003');
+  const profileResponse = await page.request.get(base + '/api/app');
+  assert.ok(profileResponse.ok());
+  const { profile } = await profileResponse.json();
+  const fragments = page.locator('.stellipath-identity .stellipath-fragments');
+  assert.equal(await fragments.locator('span').textContent(), 'Stellar Fragments Earned:');
+  assert.equal(
+    await fragments.locator('b').textContent(),
+    profile.stellar_fragments.toLocaleString('en-US'),
+  );
   assert.equal(
     await page.locator('.sidebar').getByRole('button', { name: 'StelliAd', exact: true }).count(),
     0,

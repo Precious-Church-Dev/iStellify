@@ -3859,8 +3859,8 @@ td .text-button {
   display: flex;
   align-items: center;
   pointer-events: auto;
-  min-width: 0;
-  max-width: min(50%, 425px);
+  min-width: min(52%, 465px);
+  max-width: min(56%, 490px);
   gap: clamp(13px, 2.3cqw, 27px);
   padding: clamp(11px, 2.1cqw, 25px) clamp(23px, 4cqw, 48px) clamp(12px, 2.3cqw, 26px) clamp(12px, 2.3cqw, 26px);
   border: 2px solid transparent;
@@ -3917,6 +3917,22 @@ td .text-button {
 }
 .stellipath-code { display: block; color: #b5e8ff; font-size: clamp(.79rem, 2.8cqw, 2rem); line-height: 1.15; letter-spacing: .07em; }
 .stellipath-identity strong { overflow-wrap: anywhere; display: block; margin-top: 3px; color: #d7f1ff; font-size: clamp(.8rem, 2.6cqw, 1.8rem); }
+.stellipath-profile-details { min-width: 0; }
+.stellipath-fragments {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 1px 7px;
+  margin: clamp(3px, .7cqw, 9px) 0 0;
+  color: #d6edff;
+  font-size: clamp(.61rem, 1.48cqw, 1rem);
+  line-height: 1.2;
+}
+.stellipath-fragments b {
+  color: #ffdd8f;
+  font-size: 1.14em;
+  font-variant-numeric: tabular-nums;
+}
 .stellipath-status {
   display: flex;
   flex-wrap: wrap;
@@ -4099,12 +4115,12 @@ td .text-button {
 .stelli-companion.is-welcoming .stelli-speech::after { left: 50%; }
 @media (max-width: 620px) {
   .stellipath-header { position: relative; padding: 6px; gap: 7px; }
-  .stellipath-identity { max-width: 61%; gap: 9px; padding: 7px 13px 7px 8px; border-radius: 8px 8px 28px 8px; }
+  .stellipath-identity { min-width: 0; flex: 1 1 auto; max-width: 65%; gap: 9px; padding: 7px 13px 7px 8px; border-radius: 8px 8px 28px 8px; }
   .stellipath-avatar-button { width: clamp(37px, 12cqw, 56px); padding: 3px; }
   .stellipath-avatar-button::before { inset: -6px; }
   .stellipath-camera { width: 19px; height: 19px; }
   .stellipath-camera svg { width: 12px; height: 12px; }
-  .stellipath-status { padding: 4px 6px; }
+  .stellipath-status { max-width: 36%; padding: 4px 6px; }
   .stellipath-identity h2 { font-size: clamp(1.12rem, 5.3cqw, 1.6rem); }
   .stellipath-chart { height: clamp(211px, 68cqw, 334px); }
   .stellipath-marker > svg { width: max(25px, calc(clamp(31px, 10.5cqw, 54px) * var(--marker-scale))); }

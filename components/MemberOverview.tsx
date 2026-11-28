@@ -59,6 +59,7 @@ export default function MemberOverview({
           member={{
             churchNumber: person.pcm,
             nickname: person.nickname || person.name.split(' ')[0],
+            stellarFragments: s.profile.stellar_fragments,
             avatarUrl: s.profile.has_avatar ? '/api/media?kind=avatar&v=' + s.serverNow : undefined,
             gender: s.profile.gender,
             stelliState: stelliState(stateLabel),
@@ -98,9 +99,11 @@ export default function MemberOverview({
           </div>
         </section>
       )}
-      <div className="fragment-banner">
-        ✦ {s.profile.stellar_fragments} Stellar Fragments earned
-      </div>
+      {kids && (
+        <div className="fragment-banner">
+          ✦ {s.profile.stellar_fragments} Stellar Fragments earned
+        </div>
+      )}
       {s.badges.map((b: any) => (
         <div className="fragment-banner" key={b.year}>
           🏅 Brother’s Keeper · {b.year}
