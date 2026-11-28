@@ -1,17 +1,5 @@
 'use client';
-import {
-  ArrowRight,
-  BookOpen,
-  Heart,
-  Leaf,
-  Star,
-  Sun,
-  Users,
-  Target,
-  Activity,
-  ShieldCheck,
-} from 'lucide-react';
-import Mascot from './Mascot';
+import { ArrowRight, Leaf, Star, Sun, Users, Target, Activity, ShieldCheck } from 'lucide-react';
 import StelliPath from './StelliPath';
 import { stelliState } from '@/lib/stellipath';
 export default function MemberOverview({
@@ -43,51 +31,9 @@ export default function MemberOverview({
   const stateLabel = person.spiritual_state || 'SBG';
   const ownProfile = person.id === s.user.id;
   const journeyProfile = ownProfile ? s.profile : person;
-  const hour = Number(
-    new Intl.DateTimeFormat('en-US', {
-      timeZone: s.timezone || 'Asia/Manila',
-      hour: 'numeric',
-      hour12: false,
-    }).format(new Date()),
-  );
-  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const goals = s.personalItems?.filter((r: any) => r.kind === 'goal') || [];
   return (
     <div className={'member-overview ' + (kids ? 'kids-overview' : '')}>
-      {kids && (
-        <section className="greet-panel">
-          <div className="greet-character">
-            <Mascot />
-            <span>{prefix}Stat</span>
-          </div>
-          <div className="greet-message">
-            <span className="eyebrow">A LITTLE GROWTH FOR LITTLE STARS</span>
-            <h2>
-              {greeting},<br />
-              <strong>{person.nickname || person.name.split(' ')[0]}!</strong>
-            </h2>
-            <p>Little acts of kindness and faith make a bright day.</p>
-            <span className="member-code">{person.pcm}</span>
-          </div>
-          <div className="greet-profile">
-            <div className="profile-orbit">
-              <div className="profile-initial">{(person.nickname || person.name)[0]}</div>
-            </div>
-            <strong>{person.name}</strong>
-            <span>StelliKids</span>
-          </div>
-          <div className="state-ladder">
-            <span className="eyebrow">{prefix}State</span>
-            <div className="lit">
-              <Star size={23} />
-              <span>
-                <strong>SBG</strong>
-                <small>Saved by Grace</small>
-              </span>
-            </div>
-          </div>
-        </section>
-      )}
       <StelliPath
         day={journeyDay}
         onProfile={ownProfile ? onProfile : undefined}

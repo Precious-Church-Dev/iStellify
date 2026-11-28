@@ -65,6 +65,18 @@ try {
   assert.ok(
     await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 2),
   );
+  const kidsPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await kidsPage.goto(base);
+  await kidsPage.locator('input[name=pcm]').fill('PCM0007');
+  await kidsPage.locator('input[name=password]').fill(process.env.DEMO_PASSWORD);
+  await kidsPage.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await kidsPage.getByRole('heading', { name: 'SkidiStat', exact: true, level: 1 }).waitFor();
+  const kidsPath = kidsPage.locator('.stellipath-kids');
+  await kidsPath.getByRole('heading', { name: 'StelliPath' }).waitFor();
+  assert.deepEqual(await kidsPath.locator('[data-stage] b').allTextContents(), ['SbG', 'sP2S', 'AoS']);
+  assert.equal(await kidsPath.locator('.stellipath-countdowns, time').count(), 0);
+  assert.equal(await kidsPage.locator('.greet-panel, .date-picker').count(), 0);
+  await kidsPage.close();
   assert.deepEqual(errors, []);
   console.log(
     'PASS browser sign-in, role visibility, Coach resources, weekly matrix, mobile overflow and runtime errors',

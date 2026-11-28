@@ -1,6 +1,7 @@
 'use client';
 import WeeklyCard from './WeeklyCard';
 import Profile from './Profile';
+import RosterGenderImport from './RosterGenderImport';
 import CommitmentForm from './CommitmentForm';
 import Baptism from './Baptism';
 import { Coach, ChurchCalendar, ReviewDashboard, UnlockQueue, NudgePanel } from './Updates';
@@ -534,18 +535,19 @@ export default function Workspace() {
                       : 'Precious Church · iStellify'}
               </p>
             </div>
-            {!['admin', 'settings', 'kids', 'notifications'].includes(view) && (
-              <label className="date-picker">
-                <CalendarDays size={17} />
-                <input
-                  aria-label="Selected date"
-                  type="date"
-                  value={activeDate}
-                  max={s.today}
-                  onChange={(e) => setDate(e.target.value)}
-                />
-              </label>
-            )}
+            {!(kids && view === 'home') &&
+              !['admin', 'settings', 'kids', 'notifications'].includes(view) && (
+                <label className="date-picker">
+                  <CalendarDays size={17} />
+                  <input
+                    aria-label="Selected date"
+                    type="date"
+                    value={activeDate}
+                    max={s.today}
+                    onChange={(e) => setDate(e.target.value)}
+                  />
+                </label>
+              )}
           </div>
           {subject && subject !== u.id && (
             <div className="assisted-banner">
@@ -574,7 +576,7 @@ export default function Workspace() {
                 state={s}
                 onOpen={go}
                 onHabit={openHabit}
-                journeyDay={s.subject.id === u.id ? clock.day : localClock(now, s.timezone).day}
+                journeyDay={clock.day}
                 onProfile={() => openModule('settings')}
               />
               <PersonalSections
@@ -1136,6 +1138,7 @@ export default function Workspace() {
                   </div>
                 </>
               )}
+              {adminTab === 'import' && <RosterGenderImport onComplete={refresh} />}
               {adminTab === 'import' && (
                 <section className="panel">
                   <h2>Import the church roster</h2>

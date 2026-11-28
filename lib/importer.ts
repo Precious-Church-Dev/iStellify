@@ -4,8 +4,11 @@ export type ImportMember = {
   name: string;
   tag: string;
   email: string;
+  gender?: RosterGender;
   groups: { code: string; kind: string; role: string }[];
 };
+type RosterGender = 'male' | 'female';
+
 export type ImportPreview = { members: ImportMember[]; errors: string[]; warnings: string[] };
 function clean(v: unknown): string {
   if (v == null) return '';
@@ -16,18 +19,61 @@ function clean(v: unknown): string {
   }
   return String(v).trim();
 }
-export async function parseRoster(buffer: Buffer): Promise<ImportPreview> {
-  const w = new ExcelJS.Workbook();
-  await w.xlsx.load(buffer as any);
-  const profile = w.getWorksheet('Member Profile');
+async function memberProfileSheet(buffer: Buffer) {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer as any);
+  const profile = workbook.getWorksheet('Member Profile');
   if (!profile) throw new Error('Expected a Member Profile sheet.');
+  if (profile.rowCount > 2000)
+    throw new Error('Roster is too large. Limit the workbook to 2000 rows.');
+  return profile;
+}
+
+function rosterGender(value: unknown): RosterGender | undefined {
+  const text = clean(value).trim().toLowerCase();
+  if (text === 'male' || text === 'm') return 'male';
+  if (text === 'female' || text === 'f') return 'female';
+}
+
+function genderColumn(profile: ExcelJS.Worksheet) {
+  let column: number | undefined;
+  profile.getRow(1).eachCell((cell, index) => {
+    if (/^gender\b/i.test(clean(cell.value).trim())) column = index;
+  });
+  return column;
+}
+
+export async function parseRosterGenders(buffer: Buffer) {
+  const profile = await memberProfileSheet(buffer);
+  const column = genderColumn(profile);
+  if (!column) throw new Error('Expected a Gender column in the Member Profile sheet.');
+  const found = new Map<string, RosterGender>();
+  const conflicts = new Set<string>();
+  let missingGender = 0;
+  profile.eachRow((row, index) => {
+    if (index === 1) return;
+    const pcm = clean(row.getCell(2).value).toUpperCase();
+    if (!/^PCM\d{4}$/.test(pcm)) return;
+    const gender = rosterGender(row.getCell(column).value);
+    if (!gender) {
+      missingGender++;
+      return;
+    }
+    if (found.has(pcm) && found.get(pcm) !== gender) conflicts.add(pcm);
+    found.set(pcm, gender);
+  });
+  for (const pcm of conflicts) found.delete(pcm);
+  return { rows: [...found], conflicts: conflicts.size, missingGender };
+}
+
+export async function parseRoster(buffer: Buffer): Promise<ImportPreview> {
+  const profile = await memberProfileSheet(buffer);
+  const genderIndex = genderColumn(profile);
   const members: ImportMember[] = [],
     errors: string[] = [],
     warnings: string[] = [];
   const seen = new Set<string>(),
     emails = new Map<string, string>();
-  if (profile.rowCount > 2000)
-    throw new Error('Roster is too large. Limit the workbook to 2000 rows.');
   profile.eachRow((r, n) => {
     if (n === 1) return;
     const val = (c: number) => clean(r.getCell(c).value);
@@ -83,7 +129,14 @@ export async function parseRoster(buffer: Buffer): Promise<ImportPreview> {
       warnings.push(
         `${pcm}: church-level auditor scope requires explicit per-group grants after import.`,
       );
-    members.push({ pcm, name, tag: tag || 'iStellify', email, groups });
+    members.push({
+      pcm,
+      name,
+      tag: tag || 'iStellify',
+      email,
+      groups,
+      gender: genderIndex ? rosterGender(r.getCell(genderIndex).value) : undefined,
+    });
   });
   warnings.push(
     'Passwords, health details, emergency contacts and spiritual-status fields are intentionally excluded from this pilot import.',

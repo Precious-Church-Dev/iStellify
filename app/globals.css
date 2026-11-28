@@ -3936,6 +3936,18 @@ td .text-button {
   font-size: 1.14em;
   font-variant-numeric: tabular-nums;
 }
+.stellipath-figure-link {
+  margin-top: 5px;
+  padding: 2px 0;
+  background: transparent;
+  color: #aeeafe;
+  font: inherit;
+  font-size: clamp(.65rem, 6cqw, .95rem);
+  line-height: 1.15;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: .17em;
+}
 .stellipath-status {
   display: flex;
   flex-wrap: wrap;
@@ -4022,6 +4034,30 @@ td .text-button {
 }
 .stellipath-phase-row > span:first-child b { font-size: clamp(.59rem, 2cqw, 1.44rem); letter-spacing: 0; }
 .stellipath-phase-row > span:nth-child(4) b { color: #ffdb87; -webkit-text-stroke-color: #fff0aa; text-shadow: 0 3px 0 #94703d, 0 6px 12px #081524, 0 0 15px #e6b96080; }
+
+.stellipath-kids .stellipath-identity { min-width: min(38%, 410px); max-width: min(42%, 435px); }
+.stellipath-kids .stellipath-phase-row > span:nth-child(2) { height: 31%; }
+.stellipath-kids-stage-label {
+  display: grid;
+  justify-items: center;
+  gap: clamp(3px, .8cqw, 9px);
+  width: 100%;
+  padding: 0 6%;
+  text-align: center;
+}
+.stellipath-kids-stage-label b {
+  font-size: clamp(1.15rem, 6.5cqw, 5rem);
+  letter-spacing: -.03em;
+}
+.stellipath-kids-stage-label small {
+  max-width: 18ch;
+  color: #9ee8f6;
+  font-size: clamp(.6rem, 1.9cqw, 1.32rem);
+  line-height: 1.12;
+  font-weight: 750;
+  text-wrap: balance;
+}
+.stellipath-kids .stellipath-phase-row > span:last-child small { color: #ffe3a2; }
 .stellipath-marker {
   position: absolute;
   z-index: 3;
@@ -4130,6 +4166,9 @@ td .text-button {
   .stellipath-camera svg { width: 12px; height: 12px; }
   .stellipath-status { max-width: 36%; padding: 4px 6px; }
   .stellipath-chart { height: clamp(211px, 68cqw, 334px); }
+  .stellipath-kids .stellipath-identity { min-width: 0; max-width: 65%; }
+  .stellipath-kids .stellipath-chart { height: clamp(238px, 75cqw, 370px); }
+  .stellipath-kids .stellipath-phase-row > span:nth-child(2) { height: 36%; }
   .stellipath-walker { width: max(23px, calc(clamp(30px, 9.5cqw, 50px) * var(--marker-scale))); }
   .stellipath-countdowns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .stelli-companion.is-welcoming { --welcome-size: min(70vw, 45vh, 285px); }

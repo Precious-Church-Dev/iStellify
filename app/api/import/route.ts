@@ -1,7 +1,7 @@
 import { query, transaction } from '@/lib/db.mjs';
 import { audit, digest, HttpError, requireUser, sameOrigin, token } from '@/lib/security';
 import { isAdmin } from '@/lib/domain';
-import { parseRoster, type ImportPreview } from '@/lib/importer';
+import { parseRoster, parseRosterGenders, type ImportPreview } from '@/lib/importer';
 export async function POST(req: Request) {
   try {
     sameOrigin(req);
@@ -19,6 +19,32 @@ export async function POST(req: Request) {
       )
         throw new HttpError(400, 'Select an XLSX workbook under 5 MB.');
       const bytes = Buffer.from(await file.arrayBuffer());
+      const mode = form.get('mode');
+      if (mode === 'genderPreview' || mode === 'genderApply') {
+        const { rows, conflicts, missingGender } = await parseRosterGenders(bytes);
+        const pcms = rows.map(([pcm]) => pcm);
+        if (mode === 'genderPreview') {
+          const result = await query(
+            "SELECT count(*)::int AS matched, count(*) FILTER(WHERE gender='unspecified')::int AS eligible FROM members WHERE active=true AND pcm=ANY($1::text[])",
+            [pcms],
+          );
+          return Response.json({
+            ...result.rows[0],
+            usable: rows.length,
+            conflicts,
+            missingGender,
+          });
+        }
+        const updated = await transaction(async (db: any) => {
+          const result = await db.query(
+            "UPDATE members AS member SET gender=roster.gender FROM unnest($1::text[], $2::text[]) AS roster(pcm, gender) WHERE member.pcm=roster.pcm AND member.active=true AND member.gender='unspecified' RETURNING member.id",
+            [pcms, rows.map(([, gender]) => gender)],
+          );
+          await audit(user.id, 'import.gender', 'roster', { updated: result.rows.length }, db);
+          return result.rows.length;
+        });
+        return Response.json({ updated });
+      }
       const hash = digest(bytes.toString('base64'));
       const existing = await query(
         'SELECT id FROM imports WHERE file_hash=$1 AND committed_at IS NOT NULL',
@@ -55,8 +81,8 @@ export async function POST(req: Request) {
         // Bootstrap identity and authority are never overwritten from a spreadsheet.
         if (row.pcm !== 'PCM0001')
           await db.query(
-            'INSERT INTO members(id,pcm,name,tag,email) VALUES($1,$2,$3,$4,$5) ON CONFLICT(pcm) DO UPDATE SET name=excluded.name,tag=excluded.tag,email=excluded.email',
-            [id, row.pcm, row.name, row.tag, row.email],
+            "INSERT INTO members(id,pcm,name,tag,email,gender) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(pcm) DO UPDATE SET name=excluded.name,tag=excluded.tag,email=excluded.email,gender=CASE WHEN members.gender='unspecified' THEN excluded.gender ELSE members.gender END",
+            [id, row.pcm, row.name, row.tag, row.email, row.gender ?? 'unspecified'],
           );
         if (row.pcm === 'PCM0001') continue;
         for (const group of row.groups) {
