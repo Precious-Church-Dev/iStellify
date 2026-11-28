@@ -4,8 +4,10 @@ const base = process.env.TEST_URL || 'http://127.0.0.1:3000';
 if (!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(base)) throw Error('Localhost only');
 const password = process.env.DEMO_PASSWORD;
 if (!password) throw Error('DEMO_PASSWORD is required');
-async function call(cookie, data) {
-  const r = await fetch(base + '/api/app', {
+async function call(cookie, data, date) {
+  const url = new URL('/api/app', base);
+  if (date) url.searchParams.set('date', date);
+  const r = await fetch(url, {
     method: data ? 'POST' : 'GET',
     signal: AbortSignal.timeout(15000),
     headers: {
@@ -208,7 +210,11 @@ assert.equal((await call(outsider)).body.pastoralRequests.length, 0);
 assert.equal((await call(admin)).body.pastoralRequests.length, 0);
 assert.ok((await call(servant)).body.pastoralRequests.some((p) => p.kind === 'counsel'));
 console.log('PASS selected-recipient counseling confidentiality');
-const review = (await call(servant)).body.review.find(
+// On Saturdays, the weekly card belongs to the upcoming Sunday service.
+const reviewDay = new Date(today + 'T12:00:00Z');
+if (reviewDay.getUTCDay() === 6) reviewDay.setUTCDate(reviewDay.getUTCDate() + 1);
+const reviewDate = reviewDay.toISOString().slice(0, 10);
+const review = (await call(servant, undefined, reviewDate)).body.review.find(
   (l) => l.habit === 'iRate' && l.member_id === 'demo-PCM0003',
 );
 assert.ok(review);
