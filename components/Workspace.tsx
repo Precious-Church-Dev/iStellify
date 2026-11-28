@@ -1471,7 +1471,8 @@ export default function Workspace() {
         </div>
       )}
       <StelliCompanion
-        kids={kids}
+        name={u.nickname || u.name.split(' ')[0]}
+        kids={u.tag === 'StelliKids'}
         mood={resolveMascotMood(
           Math.floor(clock.minutes / 60),
           progressDay === clock.day && s.dailyProgress.hasCompletedHabitsToday,

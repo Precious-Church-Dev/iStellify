@@ -3828,182 +3828,292 @@ td .text-button {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  padding: clamp(13px, 2.6vw, 27px);
-  border: 1px solid #315479;
-  border-radius: 20px;
+  container-type: inline-size;
+  padding: clamp(10px, 1.9vw, 22px);
+  border: 1px solid #243e5a;
+  border-radius: 15px;
   color: #ecf7ff;
-  background:
-    radial-gradient(ellipse at 88% 45%, #173552 0, transparent 59%),
-    radial-gradient(ellipse at 15% 4%, #15415a 0, transparent 38%),
-    linear-gradient(150deg, #101f33, #071628 63%, #0e2439);
-  box-shadow: 0 12px 28px #05152c20, inset 0 0 0 4px #89cfff0b;
+  background: radial-gradient(ellipse at 55% 30%, #143252, transparent 73%), #071525;
+  box-shadow: 0 17px 30px #08182d32, inset 0 0 22px #15304c77;
+}
+.stellipath-stage {
+  position: relative;
+  isolation: isolate;
+  border: 1px solid #47698769;
+  border-radius: 10px 10px 3px 3px;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 49% 68%, #17436e 0, #0c243e 40%, #051122 79%);
 }
 .stellipath-header {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 4;
   display: flex;
-  align-items: flex-start;
   justify-content: space-between;
-  flex-wrap: wrap;
+  align-items: flex-start;
   gap: 12px;
-  position: relative;
-  z-index: 1;
+  padding: 7px;
+  pointer-events: none;
 }
 .stellipath-identity {
   display: flex;
   align-items: center;
+  pointer-events: auto;
   min-width: 0;
-  gap: clamp(12px, 2vw, 22px);
-  padding: 12px 28px 13px 14px;
-  border: 1px solid transparent;
-  border-radius: 15px 15px 48px 15px;
+  max-width: min(50%, 425px);
+  gap: clamp(13px, 2.3cqw, 27px);
+  padding: clamp(11px, 2.1cqw, 25px) clamp(23px, 4cqw, 48px) clamp(12px, 2.3cqw, 26px) clamp(12px, 2.3cqw, 26px);
+  border: 2px solid transparent;
+  border-radius: 13px 15px clamp(40px, 8cqw, 90px) 13px;
   background:
-    linear-gradient(125deg, #153a55, #0a1c2f) padding-box,
-    linear-gradient(125deg, #7de4fa, #426d92 42%, #e8bc67) border-box;
+    radial-gradient(ellipse at 13% 16%, #174162, #0c2641 42%, #07172a) padding-box,
+    conic-gradient(from 238deg at 65% 45%, #dbc078, #42c7f3, #87efff, #f8d785, #146185, #71d6f7, #dbc078) border-box;
+  box-shadow: 0 0 17px #39bcff35, inset 0 0 19px #0b263e;
 }
 .stellipath-avatar-button {
   position: relative;
   flex-shrink: 0;
-  width: clamp(52px, 7.5vw, 78px);
+  width: clamp(56px, 11cqw, 117px);
   aspect-ratio: 1;
   border-radius: 50%;
-  border: 1px solid #80e4fd;
-  padding: 4px;
-  background: #16344d;
-  box-shadow: 0 0 0 3px #75d8f126, 0 0 22px #56cfff35;
+  border: 1px solid #a6edff;
+  padding: 5px;
+  background: #173e59;
+  box-shadow: 0 0 0 3px #64c8f09c, 0 0 0 6px #2a6180, 0 0 24px #52ceff7a;
+}
+.stellipath-avatar-button::before {
+  content: '';
+  position: absolute;
+  inset: -9px;
+  border-radius: 50%;
+  border: 1px dashed #7bc6ed9e;
+  pointer-events: none;
+}
+.stellipath-avatar-button .member-avatar {
+  color: #e5f8ff;
+  background: radial-gradient(circle at 50% 24%, #4986a7, #173653 67%, #ba915e);
 }
 .stellipath-camera {
   position: absolute;
-  right: -4px;
-  bottom: -2px;
+  right: -5px;
+  bottom: -3px;
   display: grid;
   place-items: center;
   width: 25px;
   height: 25px;
+  border: 1px solid #fff0b4;
   border-radius: 50%;
-  background: #f2d38b;
+  background: linear-gradient(145deg, #ffe6a0, #b88432);
   color: #14283d;
 }
 .stellipath-identity h2 {
-  margin: 0 0 4px;
-  color: #ffe093;
-  font-size: clamp(1.35rem, 3vw, 2rem);
-  line-height: 1.05;
+  margin: 0 0 .25em;
+  color: #ffde8f;
+  font-size: clamp(1.35rem, 4.7cqw, 3.65rem);
+  line-height: .98;
+  font-weight: 850;
+  letter-spacing: -.045em;
+  text-shadow: 0 0 17px #c38c36a1, 0 2px 3px #061321;
 }
-.stellipath-code { display: block; color: #a7e4fa; font-size: .8rem; letter-spacing: .1em; }
-.stellipath-identity strong { overflow-wrap: anywhere; display: block; margin-top: 2px; }
+.stellipath-code { display: block; color: #b5e8ff; font-size: clamp(.79rem, 2.8cqw, 2rem); line-height: 1.15; letter-spacing: .07em; }
+.stellipath-identity strong { overflow-wrap: anywhere; display: block; margin-top: 3px; color: #d7f1ff; font-size: clamp(.8rem, 2.6cqw, 1.8rem); }
 .stellipath-status {
-  display: grid;
-  gap: 3px;
-  padding: 9px 12px;
-  border: 1px solid #406283;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 2px 8px;
+  max-width: 42%;
+  padding: 8px 12px;
+  border: 1px solid #6088a8;
   border-radius: 9px;
-  background: #0d2238;
+  background: linear-gradient(#1c3956, #0b2036);
+  box-shadow: inset 0 0 8px #0a1929, 0 0 10px #68bde42b;
+  text-align: right;
 }
-.stellipath-status > span { color: #b7d6ea; font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; }
-.stellipath-status strong { color: #ffdc8a; font-size: 1rem; line-height: 1.15; }
-.stellipath-status small { color: #d5eafa; font-size: .74rem; }
+.stellipath-status > span { color: #c1deef; font-size: clamp(.58rem, 1.35cqw, .88rem); text-transform: uppercase; letter-spacing: .04em; }
+.stellipath-status strong { color: #ffda85; font-size: clamp(.83rem, 1.75cqw, 1.2rem); line-height: 1.15; white-space: nowrap; }
+.stellipath-status small { flex-basis: 100%; color: #d5eafa; font-size: .68rem; }
 .stellipath-chart {
   position: relative;
-  height: clamp(218px, 29vw, 318px);
-  margin: 8px 0 13px;
-  background:
-    radial-gradient(circle at 21% 32%, #ffe5ac 0 1px, transparent 2.5px),
-    radial-gradient(circle at 59% 24%, #9eeaff 0 1px, transparent 2.5px),
-    radial-gradient(circle at 78% 55%, #ffe5ac 0 1px, transparent 2.5px),
-    radial-gradient(circle at 91% 11%, #9eeaff 0 1px, transparent 2.5px),
-    linear-gradient(#77b9e316 1px, transparent 1px),
-    linear-gradient(90deg, #77b9e316 1px, transparent 1px);
-  background-size: auto, auto, auto, auto, 44px 44px, 44px 44px;
-  border-bottom: 1px solid #4e779a;
+  height: clamp(334px, 47.8cqw, 550px);
 }
-.stellipath-ribbon {
+.stellipath-scene {
   position: absolute;
+  display: block;
   inset: 0;
-  background: linear-gradient(90deg, #72deff, #f4df9d 48%, #ffca60);
-  clip-path: polygon(0 85%, 100% 27%, 100% 29%, 0 87%);
-}
-.stellipath-chart::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg, #76daee1f 6%, #78c9ff4d 50%, #efbb5459);
-  clip-path: polygon(0 85%, 100% 27%, 100% 37%, 0 97%);
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 .stellipath-phase-row {
   position: absolute;
-  inset: auto 0 0;
+  inset: 0 0 0;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: end;
-  gap: 5px;
+  gap: clamp(3px, 1.35cqw, 17px);
+  padding: 0 clamp(3px, 1.15cqw, 13px);
 }
-.stellipath-phase-row span {
+.stellipath-phase-row > span {
+  --rim: linear-gradient(145deg, #759fc3 0%, #264c78 39%, #8ecfec 82%, #143052);
+  --pane: linear-gradient(151deg, #173653c9, #0b2441e0 50%, #071a32f1);
+  --slope: 23%;
+  position: relative;
   display: grid;
   align-items: end;
   justify-items: center;
-  padding-bottom: 4px;
-  height: clamp(26px, 4vw, 42px);
-  border-top: 1px solid #71bfeb77;
-  background: linear-gradient(160deg, #34769f55, #10284988);
-  color: #b9dbee;
-  font-size: clamp(.65rem, 2.2vw, 1.6rem);
-  font-weight: 800;
+  min-width: 0;
+  height: 14%;
+  padding-bottom: clamp(4px, 1.05cqw, 12px);
+  isolation: isolate;
+  background: var(--rim);
+  clip-path: polygon(0 var(--slope), 100% 0, 100% 100%, 0 100%);
 }
-.stellipath-phase-row span:nth-child(2) { height: clamp(33px, 6vw, 61px); }
-.stellipath-phase-row span:nth-child(3) { height: clamp(44px, 8vw, 86px); }
-.stellipath-phase-row span:nth-child(4) { height: clamp(55px, 10vw, 110px); }
-.stellipath-phase-row .is-current { color: #ffdb86; border-color: #ffd47c; }
+.stellipath-phase-row > span::before,
+.stellipath-phase-row > span::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: clamp(2px, .44cqw, 5px);
+  clip-path: inherit;
+}
+.stellipath-phase-row > span::before { background: var(--pane); }
+.stellipath-phase-row > span::after {
+  inset: 11% 6% 12%;
+  opacity: .55;
+  border: 1px solid #a0ddfd9c;
+  background:
+    linear-gradient(135deg, #b6deff30, transparent 41%),
+    repeating-linear-gradient(0deg, #4081aa85 0 1px, transparent 2px 5px) right bottom / 7% 35% no-repeat;
+}
+.stellipath-phase-row > span:nth-child(2) { height: 28%; --slope: 33%; }
+.stellipath-phase-row > span:nth-child(3) { height: 48%; --slope: 22%; --pane: linear-gradient(152deg, #386487e0, #133957db 42%, #081e33); }
+.stellipath-phase-row > span:nth-child(4) { height: 65%; --slope: 17%; --rim: linear-gradient(150deg, #ffe299, #82623d 38%, #4b6787 73%, #94c9e8); --pane: linear-gradient(153deg, #7d7151, #1f3e64 41%, #071a31 85%); }
+.stellipath-phase-row > span:nth-child(n + 3) { padding-bottom: clamp(10px, 5cqw, 57px); }
+.stellipath-phase-row > span.is-current { --rim: linear-gradient(110deg, #92e5ff, #ffe0a1 52%, #3273a2 88%); }
+.stellipath-phase-row b {
+  color: #e7f2ff;
+  line-height: .95;
+  font-size: clamp(1rem, 8cqw, 5.9rem);
+  letter-spacing: -.06em;
+  font-weight: 850;
+  text-shadow: 0 2px 0 #526680, 0 4px 8px #031021, 0 0 12px #64b7ef6e;
+  -webkit-text-stroke: .4px #fef6ef;
+}
+.stellipath-phase-row > span:first-child b { font-size: clamp(.59rem, 2cqw, 1.44rem); letter-spacing: 0; }
+.stellipath-phase-row > span:nth-child(4) b { color: #ffdb87; -webkit-text-stroke-color: #fff0aa; text-shadow: 0 3px 0 #94703d, 0 6px 12px #081524, 0 0 15px #e6b96080; }
 .stellipath-marker {
   position: absolute;
-  z-index: 1;
+  z-index: 3;
   top: var(--path-y);
   left: var(--path-x);
-  transform: translate(-50%, -100%);
+  transform: translate(-47%, -98%);
   display: grid;
   justify-items: center;
   gap: 3px;
-  color: #fff1ae;
+  color: #ffe3a0;
 }
 .stellipath-marker > span {
+  position: relative;
   padding: 2px 7px;
-  border: 1px solid #ffda80;
+  border: 1px solid #ffe198;
   border-radius: 5px;
-  color: #ffdf8f;
-  background: #17314a;
-  box-shadow: 0 0 12px #f8c3606d;
-  font-size: .72rem;
+  color: #ffe096;
+  background: linear-gradient(#294661, #071a31);
+  box-shadow: 0 0 12px #f7bc5b8a;
+  font-size: clamp(.67rem, 1.9cqw, 1.02rem);
+  line-height: 1.1;
   font-weight: 800;
+  white-space: nowrap;
 }
 .stellipath-marker > svg {
-  width: clamp(24px, 4vw, 42px);
-  fill: #13324c;
-  stroke: currentColor;
-  stroke-width: 3;
-  filter: drop-shadow(0 0 5px #efb24a);
+  width: calc(clamp(37px, 8.9cqw, 103px) * var(--marker-scale));
+  overflow: visible;
+  filter: drop-shadow(0 0 3px #ffdda4) drop-shadow(0 0 9px #d88a33);
 }
+.stellipath-figure-outline { stroke: currentColor; stroke-width: 1.3; stroke-linejoin: round; }
+.stellipath-figure-shading { fill: none; stroke: #eac585; stroke-width: .75; opacity: .62; }
 .stellipath-countdowns {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   list-style: none;
-  gap: clamp(6px, 1vw, 12px);
-  margin: 0;
+  gap: clamp(4px, 1.25cqw, 17px);
+  margin: clamp(7px, 1.3cqw, 15px) 0 0;
   padding: 0;
 }
 .stellipath-countdowns li {
+  --frame: linear-gradient(155deg, #ffe2a2, #a47637 38%, #f9d38a 60%, #785435);
+  --frame-highlight: #d3a866;
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  align-content: center;
   min-width: 0;
-  padding: 9px 5px;
+  padding: clamp(6px, 1.2cqw, 14px) 5px;
+  border: clamp(1px, .4cqw, 5px) solid transparent;
+  border-radius: 3px;
   text-align: center;
-  border: 1px solid #9d8550;
-  border-radius: 7px;
-  background: linear-gradient(160deg, #1c3955, #0b1b30);
-  box-shadow: inset 0 0 0 2px #edc98418;
+  background:
+    radial-gradient(ellipse at 46% 0, #306189 0%, #132f4b 43%, #091b32 80%) padding-box,
+    var(--frame) border-box;
+  box-shadow: inset 0 0 0 2px #08182e, inset 0 0 0 3px var(--frame-highlight), 0 4px 7px #020d1e;
 }
-.stellipath-countdowns li.is-current { border-color: #8dd9f2; box-shadow: inset 0 0 0 2px #87d7f425; }
-.stellipath-countdowns strong { display: block; color: #f3f9ff; font-size: clamp(1.12rem, 2.5vw, 1.92rem); font-variant-numeric: tabular-nums; }
-.stellipath-countdowns strong span { font-size: .65em; font-weight: 500; color: #f9d58c; }
+.stellipath-countdowns li::before,
+.stellipath-countdowns li::after {
+  content: '';
+  position: absolute;
+  top: 28%;
+  left: 0;
+  width: 5.5%;
+  height: 45%;
+  background: var(--frame);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+.stellipath-countdowns li::after { left: auto; right: 0; transform: scaleX(-1); }
+.stellipath-countdowns li.is-current { --frame: linear-gradient(150deg, #e1f4ff, #6187a9 42%, #bbd7ee 80%, #4c708b); --frame-highlight: #759fc3; }
+.stellipath-countdowns strong { display: block; color: #ecf5ff; font-size: clamp(1.24rem, 4.62cqw, 3.45rem); line-height: 1.12; letter-spacing: -.045em; font-variant-numeric: tabular-nums; text-shadow: 0 2px 2px #041225; }
+.stellipath-countdowns strong span { font-size: .68em; font-weight: 550; letter-spacing: -.025em; color: #f9d58c; }
+.stellipath-countdowns li > div { padding-top: .28em; border-top: 1px solid #6cb1dd55; margin: .2em 6% 0; }
 .stellipath-countdowns b,
-.stellipath-countdowns time { display: block; font-size: clamp(.68rem, 1.1vw, .85rem); }
-.stellipath-countdowns b { color: #ffdd91; }
-.stellipath-countdowns time { color: #d3e7f4; }
+.stellipath-countdowns time { display: block; font-size: clamp(.65rem, 1.42cqw, .98rem); line-height: 1.28; }
+.stellipath-countdowns b { color: #ffdc94; }
+.stellipath-countdowns time { color: #d5e8f7; }
+
+.stelli-companion.is-welcoming {
+  --welcome-size: min(39vw, 49vh, 375px);
+  width: var(--welcome-size);
+  right: calc((100% - var(--welcome-size)) / 2);
+  bottom: max(8vh, calc(47% - var(--welcome-size) / 2));
+}
+.stelli-companion.is-welcoming .stelli-character {
+  filter: drop-shadow(0 16px 24px #0513238c) drop-shadow(0 0 12px #71cce15c);
+}
+.stelli-companion.is-welcoming .stelli-speech {
+  left: 50%;
+  bottom: calc(100% + 14px);
+  width: min(365px, calc(100vw - 32px));
+  padding: 14px 39px 14px 19px;
+  translate: -50% 0;
+}
+.stelli-companion.is-welcoming .stelli-speech::after { left: 50%; }
+@media (max-width: 620px) {
+  .stellipath-header { position: relative; padding: 6px; gap: 7px; }
+  .stellipath-identity { max-width: 61%; gap: 9px; padding: 7px 13px 7px 8px; border-radius: 8px 8px 28px 8px; }
+  .stellipath-avatar-button { width: clamp(37px, 12cqw, 56px); padding: 3px; }
+  .stellipath-avatar-button::before { inset: -6px; }
+  .stellipath-camera { width: 19px; height: 19px; }
+  .stellipath-camera svg { width: 12px; height: 12px; }
+  .stellipath-status { padding: 4px 6px; }
+  .stellipath-identity h2 { font-size: clamp(1.12rem, 5.3cqw, 1.6rem); }
+  .stellipath-chart { height: clamp(211px, 68cqw, 334px); }
+  .stellipath-marker > svg { width: max(25px, calc(clamp(31px, 10.5cqw, 54px) * var(--marker-scale))); }
+  .stellipath-countdowns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stelli-companion.is-welcoming { --welcome-size: min(70vw, 45vh, 285px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stelli-companion.is-welcoming .stelli-speech { animation: none; }
+}
 .stelli-companion.is-speaking .stelli-speech {
   left: auto;
   right: 0;
@@ -4028,10 +4138,6 @@ td .text-button {
 .login-story .login-illustration .mood-mascot,
 .login-story .login-illustration .mascot { width: 120px; height: 120px; }
 .pwa-install-control .fine-print { margin-top: .5rem; }
-@media (max-width: 560px) {
-  .stellipath-countdowns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .stellipath-chart { margin-top: 14px; }
-}
 @media (prefers-reduced-motion: reduce) {
   .stelli-companion, .stelli-character { transition: none; }
 }

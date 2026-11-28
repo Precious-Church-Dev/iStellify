@@ -33,6 +33,14 @@ try {
       .count(),
     0,
   );
+  const welcome = page.locator('.stelli-companion.is-welcoming');
+  await welcome.getByRole('status').filter({ hasText: /Welcome to iStellify/ }).waitFor();
+  await page.waitForFunction(() =>
+    document.querySelector('.stelli-companion.is-welcoming')?.getBoundingClientRect().width > 230
+  );
+  await page.waitForFunction(() =>
+    document.querySelector('.stelli-companion.is-docked')?.getBoundingClientRect().width < 110
+  );
   await shot('dashboard');
   await page.getByRole('button', { name: 'StelliCoach', exact: true }).click();
   await page.getByRole('heading', { name: 'Synthetic guide' }).waitFor();

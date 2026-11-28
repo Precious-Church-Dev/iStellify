@@ -204,7 +204,11 @@ export default function Login({ needsSetup }: { needsSetup: boolean }) {
             </button>
           </form>
           {mode === 'login' && (
-            <a className="button secondary full google-signin" href="/api/auth/google">
+            <a
+              className="button secondary full google-signin"
+              href="/api/auth/google"
+              onClick={() => sessionStorage.setItem('istelli-greeting-pending', 'yes')}
+            >
               <span className="google-g" aria-hidden="true">
                 G
               </span>
