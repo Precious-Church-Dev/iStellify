@@ -19,10 +19,9 @@ try {
   await page.locator('input[name=password]').fill(process.env.DEMO_PASSWORD);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await page.getByRole('heading', { name: 'StelliStat', exact: true, level: 1 }).waitFor();
-  await page
-    .getByRole('button', { name: 'Dismiss Stelli greeting' })
-    .click()
-    .catch(() => {});
+  await page.getByRole('heading', { name: 'StelliPath', exact: true }).waitFor();
+  assert.equal(await page.locator('.stellipath-countdowns li').count(), 4);
+  assert.equal(await page.locator('.stellipath-code').textContent(), 'PCM0003');
   assert.equal(
     await page.locator('.sidebar').getByRole('button', { name: 'StelliAd', exact: true }).count(),
     0,

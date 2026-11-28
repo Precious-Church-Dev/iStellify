@@ -28,7 +28,7 @@ export function memberSections(kids: boolean) {
         ]
       : []),
     { id: 'goals', label: kids ? 'SkidiBase' : 'StelliBase' },
-    { id: 'rate', label: kids ? 'SkidiGrade' : 'StelliGrade' },
+    ...(kids ? [{ id: 'rate', label: 'SkidiGrade' }] : []),
   ];
 }
 export function moduleAllowed(

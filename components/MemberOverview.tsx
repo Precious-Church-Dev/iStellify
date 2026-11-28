@@ -12,14 +12,20 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import Mascot from './Mascot';
+import StelliPath from './StelliPath';
+import { stelliState } from '@/lib/stellipath';
 export default function MemberOverview({
   state,
   onOpen,
   onHabit,
+  journeyDay,
+  onProfile,
 }: {
   state: any;
   onOpen: (view: string) => void;
   onHabit: (habit: string) => void;
+  journeyDay: string;
+  onProfile: () => void;
 }) {
   const s = state,
     kids = s.subject.tag === 'StelliKids',
@@ -46,53 +52,52 @@ export default function MemberOverview({
   const goals = s.personalItems?.filter((r: any) => r.kind === 'goal') || [];
   return (
     <div className={'member-overview ' + (kids ? 'kids-overview' : '')}>
-      <section className="greet-panel">
-        <div className="greet-character">
-          <Mascot completed={daily > 0} />
-          <span>{prefix}Stat</span>
-        </div>
-        <div className="greet-message">
-          <span className="eyebrow">
-            {kids ? 'A LITTLE GROWTH FOR LITTLE STARS' : 'YOUR PERSONAL GROWTH JOURNEY'}
-          </span>
-          <h2>
-            {greeting},<br />
-            <strong>{person.nickname || person.name.split(' ')[0]}!</strong>
-          </h2>
-          <p>
-            {kids
-              ? 'Little acts of kindness and faith make a bright day.'
-              : '“Let your light shine before others.”'}
-          </p>
-          <span className="member-code">{person.pcm}</span>
-        </div>
-        <div className="greet-profile">
-          <div className="profile-orbit">
-            <div className="profile-initial">{(person.nickname || person.name)[0]}</div>
+      {!kids ? (
+        <StelliPath
+          day={journeyDay}
+          onProfile={onProfile}
+          member={{
+            churchNumber: person.pcm,
+            nickname: person.nickname || person.name.split(' ')[0],
+            avatarUrl: s.profile.has_avatar ? '/api/media?kind=avatar&v=' + s.serverNow : undefined,
+            gender: s.profile.gender,
+            stelliState: stelliState(stateLabel),
+          }}
+        />
+      ) : (
+        <section className="greet-panel">
+          <div className="greet-character">
+            <Mascot />
+            <span>{prefix}Stat</span>
           </div>
-          <strong>{person.name}</strong>
-          <span>{kids ? 'StelliKids' : 'iStellify'}</span>
-        </div>
-        <div className="state-ladder">
-          <span className="eyebrow">{prefix}State</span>
-          {(kids
-            ? [['SBG', 'Saved by Grace']]
-            : [
-                ['AOS', 'Assured of Salvation'],
-                ['sP2S', 'Permitted to Share'],
-                ['SBG', 'Saved by Grace'],
-              ]
-          ).map(([code, label]) => (
-            <div key={code} className={stateLabel === code || code === 'SBG' ? 'lit' : ''}>
+          <div className="greet-message">
+            <span className="eyebrow">A LITTLE GROWTH FOR LITTLE STARS</span>
+            <h2>
+              {greeting},<br />
+              <strong>{person.nickname || person.name.split(' ')[0]}!</strong>
+            </h2>
+            <p>Little acts of kindness and faith make a bright day.</p>
+            <span className="member-code">{person.pcm}</span>
+          </div>
+          <div className="greet-profile">
+            <div className="profile-orbit">
+              <div className="profile-initial">{(person.nickname || person.name)[0]}</div>
+            </div>
+            <strong>{person.name}</strong>
+            <span>StelliKids</span>
+          </div>
+          <div className="state-ladder">
+            <span className="eyebrow">{prefix}State</span>
+            <div className="lit">
               <Star size={23} />
               <span>
-                <strong>{code}</strong>
-                <small>{label}</small>
+                <strong>SBG</strong>
+                <small>Saved by Grace</small>
               </span>
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
+        </section>
+      )}
       <div className="fragment-banner">
         ✦ {s.profile.stellar_fragments} Stellar Fragments earned
       </div>
@@ -276,16 +281,16 @@ export default function MemberOverview({
               Name a goal, make a plan, and keep track of the small steps along the way.
             </p>
           )}
-          <button className="rating-summary" onClick={() => onOpen('rate')}>
-            <Activity size={19} />
-            <span>
-              <strong>{prefix}Grade</strong>
-              <small>
-                {kids ? 'Private growth checkpoints' : 'Weekly reflection and growth checkpoints'}
-              </small>
-            </span>
-            <ArrowRight size={16} />
-          </button>
+          {kids && (
+            <button className="rating-summary" onClick={() => onOpen('rate')}>
+              <Activity size={19} />
+              <span>
+                <strong>SkidiGrade</strong>
+                <small>Private growth checkpoints</small>
+              </span>
+              <ArrowRight size={16} />
+            </button>
+          )}
         </section>
       </div>
     </div>

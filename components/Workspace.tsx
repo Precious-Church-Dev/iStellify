@@ -4,7 +4,7 @@ import Profile from './Profile';
 import CommitmentForm from './CommitmentForm';
 import Baptism from './Baptism';
 import { Coach, ChurchCalendar, ReviewDashboard, UnlockQueue, NudgePanel } from './Updates';
-import { LIFE_CARDS, cardPeriod, reviewOpen } from '@/lib/cards';
+import { LIFE_CARDS, cardPeriod, localClock, reviewOpen } from '@/lib/cards';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
@@ -44,6 +44,9 @@ import MemberOverview from './MemberOverview';
 import PersonalSections from './PersonalSections';
 import MinistryModule from './MinistryModule';
 import StelliCompanion from './StelliCompanion';
+import MemberAvatar from './MemberAvatar';
+import { InstallControl } from './Pwa';
+import { resolveMascotMood } from '@/lib/stelli-mascot';
 import {
   MODULES,
   landingModule,
@@ -142,7 +145,7 @@ export default function Workspace() {
   const [state, setState] = useState<any>(null),
     [view, setView] = useState('home'),
     [activeModule, setActiveModule] = useState<ModuleId | null>(null),
-    [celebration, setCelebration] = useState(0),
+    [now, setNow] = useState(() => new Date()),
     [date, setDate] = useState(''),
     [subject, setSubject] = useState(''),
     [modal, setModal] = useState<any>(null),
@@ -179,6 +182,20 @@ export default function Workspace() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+  useEffect(() => {
+    const update = () => setNow(new Date());
+    const timer = window.setInterval(update, 15000);
+    window.addEventListener('focus', update);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', update);
+    };
+  }, []);
+  const clock = localClock(now, state?.profile?.timezone);
+  const progressDay = state?.dailyProgress?.day;
+  useEffect(() => {
+    if (progressDay && progressDay !== clock.day) refresh();
+  }, [clock.day, progressDay, refresh]);
   useEffect(() => {
     const t = localStorage.getItem('istelli-theme') || 'light';
     setTheme(t);
@@ -247,7 +264,6 @@ export default function Workspace() {
     if (!r.ok) throw new Error(b.error);
     if (b.message) setToast(b.message);
     await refresh();
-    if (data.action === 'log' && !data.draft) setCelebration((n) => n + 1);
     return b;
   }
   function go(v: string) {
@@ -482,17 +498,17 @@ export default function Workspace() {
               <Bell size={19} />
               {s.notifications.some((n: any) => !n.read_at) && <i />}
             </button>
-            <div className="avatar">
-              <img
-                src={
-                  s.profile.has_avatar
-                    ? '/api/media?kind=avatar&v=' + s.serverNow
-                    : '/assets/mascot/stelli_happy.png'
-                }
-                alt="Your profile"
-                style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+            <button
+              type="button"
+              className="avatar"
+              onClick={() => openModule('settings')}
+              aria-label="Open your profile"
+            >
+              <MemberAvatar
+                src={s.profile.has_avatar ? '/api/media?kind=avatar&v=' + s.serverNow : undefined}
+                label="Your profile picture"
               />
-            </div>
+            </button>
           </div>
         </header>
         <main className="content">
@@ -554,7 +570,13 @@ export default function Workspace() {
           )}
           {coreModule && view === 'home' && (
             <>
-              <MemberOverview state={s} onOpen={go} onHabit={openHabit} />
+              <MemberOverview
+                state={s}
+                onOpen={go}
+                onHabit={openHabit}
+                journeyDay={clock.day}
+                onProfile={() => openModule('settings')}
+              />
               <PersonalSections
                 view="stat"
                 state={s}
@@ -574,15 +596,16 @@ export default function Workspace() {
           {view === 'cleanse' && <Baptism state={s} act={act} />}
           {moduleId === 'coach' && view === 'coach' && <Coach state={s} act={act} />}
           {moduleId === 'church' && view === 'ministry' && <ChurchCalendar state={s} act={act} />}
-          {coreModule && ['stat', 'goals', 'rate', 'save', 'best'].includes(view) && (
-            <PersonalSections
-              view={view}
-              state={s}
-              date={activeDate}
-              onRefresh={refresh}
-              onWeeklyRate={() => openHabit('iRate')}
-            />
-          )}
+          {coreModule &&
+            (['stat', 'goals', 'save', 'best'].includes(view) || (kids && view === 'rate')) && (
+              <PersonalSections
+                view={view}
+                state={s}
+                date={activeDate}
+                onRefresh={refresh}
+                onWeeklyRate={() => openHabit('iRate')}
+              />
+            )}
           {['care', 'share', 'church'].includes(moduleId) && view === 'ministry' && (
             <MinistryModule
               module={moduleId as 'care' | 'share' | 'church'}
@@ -882,7 +905,7 @@ export default function Workspace() {
           )}
           {view === 'settings' && (
             <div className="settings-grid">
-              <Profile state={s} act={act} />
+              <Profile state={s} act={act} refresh={refresh} />
               <section className="panel">
                 <h2>Make yourself comfortable</h2>
                 <p className="muted">Choose the appearance that works for you.</p>
@@ -890,6 +913,8 @@ export default function Workspace() {
                   {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}Switch to{' '}
                   {theme === 'light' ? 'dark' : 'light'} mode
                 </button>
+                <h3 className="spaced">App installation</h3>
+                <InstallControl />
                 <h3 className="spaced">Your privacy</h3>
                 <p className="muted">
                   Your personal notes stay private. Relevant entries are available only to assigned
@@ -1446,12 +1471,10 @@ export default function Workspace() {
         </div>
       )}
       <StelliCompanion
-        memberId={u.id}
-        name={s.subject.nickname || s.subject.name.split(' ')[0]}
         kids={kids}
-        celebration={celebration}
-        completed={s.logs.some(
-          (l: any) => DAILY.includes(l.habit) && l.period === s.today && l.status !== 'draft',
+        mood={resolveMascotMood(
+          Math.floor(clock.minutes / 60),
+          progressDay === clock.day && s.dailyProgress.hasCompletedHabitsToday,
         )}
       />
       {modal?.habit &&

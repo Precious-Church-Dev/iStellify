@@ -9,7 +9,7 @@ function error(e: unknown) {
 }
 export async function GET(req: Request) {
   try {
-    const u = await requireUser(),
+    const u = await requireUser(false, req),
       p = new URL(req.url).searchParams;
     let row: any;
     if (p.get('kind') === 'event')

@@ -1,6 +1,15 @@
 'use client';
 import { useState } from 'react';
-export default function Profile({ state, act }: { state: any; act: (b: any) => Promise<any> }) {
+import MemberAvatar from './MemberAvatar';
+export default function Profile({
+  state,
+  act,
+  refresh,
+}: {
+  state: any;
+  act: (b: any) => Promise<any>;
+  refresh: () => Promise<void>;
+}) {
   const p = state.profile;
   const [image, setImage] = useState(''),
     [zoom, setZoom] = useState(1),
@@ -39,7 +48,7 @@ export default function Profile({ state, act }: { state: any; act: (b: any) => P
       const b = await r.json();
       if (!r.ok) throw Error(b.error);
       setImage('');
-      await act({ action: 'readNotifications' });
+      await refresh();
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -50,13 +59,9 @@ export default function Profile({ state, act }: { state: any; act: (b: any) => P
     <section className="panel">
       <h2>Your profile</h2>
       <div className="profile-picture">
-        <img
-          src={
-            p.has_avatar
-              ? '/api/media?kind=avatar&v=' + state.serverNow
-              : '/assets/mascot/stelli_happy.png'
-          }
-          alt="Your profile"
+        <MemberAvatar
+          src={p.has_avatar ? '/api/media?kind=avatar&v=' + state.serverNow : undefined}
+          label="Your profile picture"
         />
       </div>
       <label>
@@ -161,6 +166,14 @@ export default function Profile({ state, act }: { state: any; act: (b: any) => P
         <label>
           Preferred nickname
           <input name="nickname" maxLength={50} defaultValue={p.nickname} />
+        </label>
+        <label>
+          Gender
+          <select name="gender" defaultValue={p.gender}>
+            <option value="unspecified">Prefer not to specify</option>
+            <option value="female">Female</option>
+            <option value="male">Male</option>
+          </select>
         </label>
         <label>
           Personal bio / faith testimony

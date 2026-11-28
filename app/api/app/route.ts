@@ -1,4 +1,5 @@
 import { v21Action, v21State } from '@/lib/v21';
+import { memberDailyProgress } from '@/lib/stelli-progress';
 import {
   cardPeriod,
   localClock,
@@ -152,8 +153,10 @@ export async function GET(req: Request) {
         }
       : null;
     const finance = all.filter((l) => l.habit === 'iTithes' && canFinance(user, scope, l));
+    const memberState = await v21State(user, scope, subject, day);
     return Response.json({
       subject,
+      dailyProgress: await memberDailyProgress(user.id, memberState.profile.timezone),
       date: day,
       scope: subjectScope,
       review,
@@ -165,7 +168,7 @@ export async function GET(req: Request) {
       admin,
       finance,
       roleScope: scope,
-      ...(await v21State(user, scope, subject, day)),
+      ...memberState,
       personalItems: await run(
         'SELECT id,kind,title,data,created_at,updated_at FROM personal_items WHERE member_id=$1 ORDER BY updated_at DESC LIMIT 200',
         [subject.id],

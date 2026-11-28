@@ -11,7 +11,7 @@ function deny(s: string, status = 400): never {
 export async function v21State(u: any, scope: any[], subject: any, day: string) {
   const profile = (
     await rows(
-      'SELECT name,nickname,email,bio,phone,birthdate::text,timezone,google_sub IS NOT NULL AS google_linked,avatar IS NOT NULL AS has_avatar,stellar_fragments FROM members WHERE id=$1',
+      'SELECT name,nickname,email,bio,phone,birthdate::text,timezone,gender,google_sub IS NOT NULL AS google_linked,avatar IS NOT NULL AS has_avatar,stellar_fragments FROM members WHERE id=$1',
       [u.id],
     )
   )[0];
@@ -411,11 +411,14 @@ export async function v21Action(
       deny('Enter a valid past birthdate.');
     const timeZone = String(b.timezone || zone);
     if (!validTimezone(timeZone)) deny('Choose a valid IANA timezone.');
+    const gender = b.gender === undefined ? null : b.gender;
+    if (b.gender !== undefined && !['male', 'female', 'unspecified'].includes(gender))
+      deny('Choose a valid gender.');
     const old = (await rows('SELECT google_sub,email FROM members WHERE id=$1', [u.id]))[0];
     if (old.google_sub && email !== String(old.email || '').toLowerCase())
       deny('Your Google-linked email is read-only.');
     await query(
-      'UPDATE members SET name=$1,nickname=$2,bio=$3,phone=$4,email=$5,birthdate=$6,timezone=$7 WHERE id=$8',
+      'UPDATE members SET name=$1,nickname=$2,bio=$3,phone=$4,email=$5,birthdate=$6,timezone=$7,gender=COALESCE($8,gender) WHERE id=$9',
       [
         name,
         String(b.nickname || '').slice(0, 50),
@@ -424,6 +427,7 @@ export async function v21Action(
         email || null,
         b.birthdate || null,
         timeZone,
+        gender,
         u.id,
       ],
     );

@@ -6,11 +6,7 @@ export const metadata: Metadata = {
   description: 'Precious Church personal growth and ministry platform',
   manifest: '/site.webmanifest',
   icons: {
-    icon: [
-      { url: '/favicon.ico' },
-      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/icon.svg', type: 'image/svg+xml' },
-    ],
+    icon: [{ url: '/assets/icons/App_Icon_Happy_Stelli.png', type: 'image/png' }],
     apple: [{ url: '/apple-touch-icon.png', sizes: '180x180' }],
   },
   appleWebApp: { capable: true, statusBarStyle: 'default', title: 'iStellify' },
@@ -20,8 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        {children}
-        <Pwa />
+        <Pwa>{children}</Pwa>
       </body>
     </html>
   );

@@ -41,6 +41,7 @@ ALTER TABLE members ADD COLUMN IF NOT EXISTS birthdate DATE;
 ALTER TABLE members ADD COLUMN IF NOT EXISTS timezone TEXT NOT NULL DEFAULT 'Asia/Manila';
 ALTER TABLE members ADD COLUMN IF NOT EXISTS google_sub TEXT;
 ALTER TABLE members ADD COLUMN IF NOT EXISTS avatar BYTEA;
+ALTER TABLE members ADD COLUMN IF NOT EXISTS gender TEXT NOT NULL DEFAULT 'unspecified' CHECK (gender IN ('male','female','unspecified'));
 ALTER TABLE members ADD COLUMN IF NOT EXISTS stellar_fragments INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE commitments ADD COLUMN IF NOT EXISTS schedule JSONB NOT NULL DEFAULT '{}';
 CREATE UNIQUE INDEX IF NOT EXISTS member_google_sub ON members(google_sub) WHERE google_sub IS NOT NULL;

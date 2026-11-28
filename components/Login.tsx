@@ -79,11 +79,8 @@ export default function Login({ needsSetup }: { needsSetup: boolean }) {
             Church to shine like stars, for the glory of our God.
           </p>
           <div className="login-illustration">
-            <div className="orbit orbit-one" />
-            <div className="orbit orbit-two" />
             <Mascot />
-            <span className="floating-star one">✦</span>
-            <span className="floating-star two">✧</span>
+            <span>Welcome to iStellify App</span>
           </div>
         </div>
         <div className="login-footer">
